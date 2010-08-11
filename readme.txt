@@ -23,13 +23,28 @@ Additionally, there are very first versions widgets to display the content of co
 
 The entries are formatted the following way - so, the style can be tailored using CSS. 
 <pre>
-	&lt;span class="wpmref"&gt;
+    &lt;h2 class="wpmgrouptitle"&gt;grouptitle&lt;/h2&gt;
+	&lt;p class="wpmref"&gt;
 	   &lt;span class="wpmauthors"&gt;$authors&lt/span&gt;
 	   &lt;span class="wpmyear"&gt;($year)&lt;/span&gt;: 
 	   &lt;span class="wpmtitle"&gt;$title&lt;/span&gt;
 	   , &lt;span class="wpmoutlet"&gt;$publication_outlet&lt;/span&gt;
 	   , &lt;span class="wpmurl"&gt;$url&lt;/span&gt;
-	&lt;/span&gt;
+	&lt;/p&gt;
+</pre>
+
+The output in the widgets is formatted the following way:
+<pre>
+    &lt;ul class="wpmlist"&gt;
+	&lt;li class="wpmlistref"&gt;
+	   &lt;span class="wpmauthors"&gt;$authors&lt/span&gt;
+	   &lt;span class="wpmyear"&gt;($year)&lt;/span&gt;: 
+	   &lt;span class="wpmtitle"&gt;$title&lt;/span&gt;
+	   , &lt;span class="wpmoutlet"&gt;$publication_outlet&lt;/span&gt;
+	   , &lt;span class="wpmurl"&gt;$url&lt;/span&gt;
+	&lt;/li&gt;
+	...
+	&lt;/ul&gt;
 </pre>
 
 For using the plugin you have to obtain an API key from Mendeley,
@@ -55,8 +70,13 @@ and authorize the API. To do so the following steps have to be taken:
 
 == Change log ==
 
-= 0.3.0 =
-* Added support for caching the date requested from Mendeley in the Wordpress database
+= 0.3.1 =
+* Corrected type in source code
+* More consistent and complete support for CSS formatting output
+* Widgets now support display of latest / first x documents from collection
+
+= 0.3.0 (11.08.2010) =
+* Added support for caching the data requested from Mendeley in the Wordpress database
 
 = 0.2.0 =
 * Added support for widgets

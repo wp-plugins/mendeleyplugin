@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.3
+Version: 0.3.1
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
 License: http://www.opensource.org/licenses/mit-license.php
@@ -111,10 +111,10 @@ if (!class_exists("MendeleyPlugin")) {
 						$groupbyval = $doc->year;
 					}
 					if ($groupbyval != $currentgroupbyval) {
-						$result = $result . "<h2>$groupbyval</h2>";
+						$result = $result . '<h2 class="wpmgrouptitle">' . $groupbyval . '</h2>';
 						$currentgroupbyval = $groupbyval;
 					}
-					$result = $result . "<p>".$this->formatDocument($doc)."</p>";
+					$result = $result . '<p class="wpmref">' . $this->formatDocument($doc) . '</p>';
 				}
 			}
 			if ($type == "shared") {
@@ -132,10 +132,10 @@ if (!class_exists("MendeleyPlugin")) {
 						$groupbyval = $doc->year;
 					}
 					if ($groupbyval != $currentgroupbyval) {
-						$result = $result . "<h2>$groupbyval</h2>";
+						$result = $result . '<h2 class="wpmgrouptitle">' . $groupbyval . '</h2>';
 						$currentgroupbyval = $groupbyval;
 					}
-					$result = $result . "<p>".$this->formatDocument($doc)."</p>";
+					$result = $result . '<p class="wpmref">' . $this->formatDocument($doc) . "</p>";
 				}
 			}
 			return $result;
@@ -151,7 +151,7 @@ if (!class_exists("MendeleyPlugin")) {
 				$doc_ids = $result->document_ids;
 				return $doc_ids;
 			}
-			$url = MENDELY_OAPI_URL . "library/collections/$id/?page=0&items=1000";
+			$url = MENDELEY_OAPI_URL . "library/collections/$id/?page=0&items=1000";
 			$result = $this->sendAuthorizedRequest($url);
 			$this->updateCollectionInCache($id, $result);
 			$doc_ids = $result->document_ids;
@@ -198,9 +198,10 @@ if (!class_exists("MendeleyPlugin")) {
 		}
 		/* get the meta information (array) for all document ids in
 		   the array given as an input parameter */
-		function loadDocs($docidarr) {
+		function loadDocs($docidarr, $count=0) {
 			$res = array();
-			for($i=0; $i <= sizeof($docidarr); $i++) {
+			if ($count == 0) { $count = sizeof($docidarr); }
+			for($i=0; $i <= $count; $i++) {
 				$docid = $docidarr[$i];
 				$doc = $this->getDocument($docid);
 				$res[] = $doc;
@@ -240,8 +241,7 @@ if (!class_exists("MendeleyPlugin")) {
 				if ($i > 0) $authors = $authors.", ";
 				$authors = $authors.$author_arr[$i];
 			}
-			$tmps = '<span class="wpmref">' .
-			        '<span class="wpmauthors">' . $authors . '</span> ' .
+			$tmps = '<span class="wpmauthors">' . $authors . '</span> ' .
 			        '<span class="wpmyear">(' . $doc->year . ')</span>: ' . 
 			        '<span class="wpmtitle">' . $doc->title . '</span>';
 			if (isset($doc->publication_outlet)) {
@@ -252,7 +252,6 @@ if (!class_exists("MendeleyPlugin")) {
 				$tmps .= ', <span class="wpmurl"><a href="' . 
 					$doc->url . '">URL</a></span>';
 			}
-			$tmps .= '</span>';
 			return $tmps;
 			// type: "Book Section", "Journal Article", "Generic", ...
 			// anames: title, authors (A), tags (A), publication_outlet, year, abstract,
@@ -634,26 +633,19 @@ class MendeleyCollectionWidget extends WP_Widget {
         extract( $args );
         $title = apply_filters('widget_title', $instance['title']);
         $cid = apply_filters('widget_cid', $instance['cid']);
+        $count = apply_filters('widget_count', $instance['count']);
         ?>
               <?php echo $before_widget; ?>
                   <?php if ( $title )
                         echo $before_title . $title . $after_title; ?>
               <?php
-              	$result = "";
+              	$result = '<ul class="wpmlist">';
 				$res = $mendeleyPlugin->getCollection($id);
-				$docarr = $mendeleyPlugin->loadDocs($res);
-				$docarr = $mendeleyPlugin->groupDocs($docarr, "year");
-				$currentgroupbyval = "";
-				$groupbyval = "";
+				$docarr = $mendeleyPlugin->loadDocs($res, $count);
 				foreach($docarr as $doc) {
-					// check if groupby-value changed
-					$groupbyval = $doc->year;
-					if ($groupbyval != $currentgroupbyval) {
-						$result = $result . "<h2>$groupbyval</h2>";
-						$currentgroupbyval = $groupbyval;
-					}
-					$result = $result . "<p>".$this->formatDocument($doc)."</p>";
+					$result = $result . '<li class="wpmlistref">'.$this->formatDocument($doc)."</li>";
 				}
+				$result .= '</ul>';
                ?>
               <?php echo $after_widget; ?>
         <?php
@@ -664,6 +656,7 @@ class MendeleyCollectionWidget extends WP_Widget {
 		$instance = $old_instance;
 		$instance['title'] = strip_tags($new_instance['title']);
 		$instance['cid'] = strip_tags($new_instance['cid']);
+		$instance['count'] = strip_tags($new_instance['count']);
         return $instance;
     }
 
@@ -671,9 +664,11 @@ class MendeleyCollectionWidget extends WP_Widget {
     function form($instance) {				
         $title = esc_attr($instance['title']);
         $cid = esc_attr($instance['cid']);
+        $count = esc_attr($instance['count']);
         ?>
             <p><label for="<?php echo $this->get_field_id('title'); ?>"><?php _e('Title:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name('title'); ?>" type="text" value="<?php echo $title; ?>" /></label></p>
             <p><label for="<?php echo $this->get_field_id('cid'); ?>"><?php _e('Collection Id:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('cid'); ?>" name="<?php echo $this->get_field_name('cid'); ?>" type="text" value="<?php echo $cid; ?>" /></label></p>
+ 			<p><label for="<?php echo $this->get_field_id('count'); ?>"><?php _e('Number of docs to display:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('count'); ?>" name="<?php echo $this->get_field_name('count'); ?>" type="text" value="<?php echo $count; ?>" /></label></p>
         <?php 
     }
 
@@ -693,26 +688,19 @@ class MendeleySharedCollectionWidget extends WP_Widget {
         extract( $args );
         $title = apply_filters('widget_title', $instance['title']);
         $cid = apply_filters('widget_cid', $instance['cid']);
+        $count = apply_filters('widget_cid', $instance['count']);
         ?>
               <?php echo $before_widget; ?>
                   <?php if ( $title )
                         echo $before_title . $title . $after_title; ?>
               <?php
-              	$result = "";
+              	$result = '<ul class="wpmlist">';
 				$res = $mendeleyPlugin->getSharedCollection($id);
-				$docarr = $mendeleyPlugin->loadDocs($res);
-				$docarr = $mendeleyPlugin->groupDocs($docarr, "year");
-				$currentgroupbyval = "";
-				$groupbyval = "";
+				$docarr = $mendeleyPlugin->loadDocs($res, $count);
 				foreach($docarr as $doc) {
-					// check if groupby-value changed
-					$groupbyval = $doc->year;
-					if ($groupbyval != $currentgroupbyval) {
-						$result = $result . "<h2>$groupbyval</h2>";
-						$currentgroupbyval = $groupbyval;
-					}
-					$result = $result . "<p>".$this->formatDocument($doc)."</p>";
+					$result = $result . '<li class="wpmlistref">' . $this->formatDocument($doc) . '</li>';
 				}
+				$result .= '</ul>';
                ?>
               <?php echo $after_widget; ?>
         <?php
@@ -723,6 +711,7 @@ class MendeleySharedCollectionWidget extends WP_Widget {
 		$instance = $old_instance;
 		$instance['title'] = strip_tags($new_instance['title']);
 		$instance['cid'] = strip_tags($new_instance['cid']);
+		$instance['count'] = strip_tags($new_instance['count']);
         return $instance;
     }
 
@@ -730,9 +719,11 @@ class MendeleySharedCollectionWidget extends WP_Widget {
     function form($instance) {				
         $title = esc_attr($instance['title']);
         $cid = esc_attr($instance['cid']);
+        $count = esc_attr($instance['count']);
         ?>
             <p><label for="<?php echo $this->get_field_id('title'); ?>"><?php _e('Title:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name('title'); ?>" type="text" value="<?php echo $title; ?>" /></label></p>
             <p><label for="<?php echo $this->get_field_id('cid'); ?>"><?php _e('Shared Collection Id:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('cid'); ?>" name="<?php echo $this->get_field_name('cid'); ?>" type="text" value="<?php echo $cid; ?>" /></label></p>
+ 			<p><label for="<?php echo $this->get_field_id('count'); ?>"><?php _e('Number of docs to display:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('count'); ?>" name="<?php echo $this->get_field_name('count'); ?>" type="text" value="<?php echo $count; ?>" /></label></p>
         <?php 
     }
 

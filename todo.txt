@@ -1,5 +1,4 @@
 TODOs for the plugin:
 - support more attributes when document details returns them
 - lookup collections by name
-- add support for grouping in widget configuration
-- add support to display only the first 10 documents in widget configuration and elsewhere
+
