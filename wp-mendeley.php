@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.3.1
+Version: 0.4
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
 License: http://www.opensource.org/licenses/mit-license.php
@@ -40,7 +40,7 @@ define( 'ACCESS_TOKEN_ENDPOINT', 'http://www.mendeley.com/oauth/access_token/' )
 define( 'AUTHORIZE_ENDPOINT', 'http://www.mendeley.com/oauth/authorize/' );
 define( 'MENDELEY_OAPI_URL', 'http://www.mendeley.com/oapi/' );
 
-define( 'PLUGIN_VERSION' , '0.3' );
+define( 'PLUGIN_VERSION' , '0.4' );
 define( 'PLUGIN_DB_VERSION', 1 );
 
 // JSON services for PHP4
@@ -68,6 +68,7 @@ if (!class_exists("MendeleyPlugin")) {
 		function init() {
 			$this->getOptions();
 			$this->initializeDatabase();
+			load_plugin_textdomain('wp-mendeley');
 		}
 		function sendAuthorizedRequest($url) {
 			$this->getOptions();
@@ -234,12 +235,39 @@ if (!class_exists("MendeleyPlugin")) {
 		}
 		
 		/* produce the output for one document */
+		/* the following attributes are available in the doc object
+			title
+			year
+			authors*
+			editors*
+			tags*
+			keywords*
+			identifiers* (issn,...)
+			url
+			discipline*
+			publication_outlet
+			pages
+			issue
+			volume
+			city
+			publisher
+			abstract
+			// type: "Book Section", "Journal Article", "Generic", ...
+		*/
 		function formatDocument($doc) {
 			$author_arr = $doc->authors;
 			$authors = "";
 			for($i = 0; $i < sizeof($author_arr); ++$i) {
 				if ($i > 0) $authors = $authors.", ";
 				$authors = $authors.$author_arr[$i];
+			}
+			$editor_arr = $doc->editors;
+			$editors = "";
+			if (isset($doc->editors)) {
+				for($i = 0; $i < sizeof($editor_arr); ++$i) {
+					if ($i > 0) $editors = $editors.", ";
+					$editors = $editors.$editor_arr[$i];
+				}
 			}
 			$tmps = '<span class="wpmauthors">' . $authors . '</span> ' .
 			        '<span class="wpmyear">(' . $doc->year . ')</span>: ' . 
@@ -248,15 +276,32 @@ if (!class_exists("MendeleyPlugin")) {
 				$tmps .= ', <span class="wpmoutlet">' . 
 				    $doc->publication_outlet . '</span>';
 			}
+			if (isset($doc->volume)) {
+				$tmps .= ' <span class="wpmvolume">' . $doc->volume . '</span>';
+			}
+			if (isset($doc->issue)) {
+				$tmps .= '<span class="wpmissue">(' . $doc->issue . ')</span>';
+			}
+			if (isset($doc->editors)) {
+				if (strlen($editors)>0) {
+					$tmps .= ', <span class="wpmeditors">' . $editors . ' (' . __('ed.','wp-mendeley') . ')</span>';
+				}
+			}
+			if (isset($doc->pages)) {
+				$tmps .= ', <span class="wpmpages">' . __('p.','wp-mendeley') . ' ' . $doc->pages . '</span>';
+			}
+			if (isset($doc->publisher)) {
+				if (isset($doc->city)) {
+					$tmps .= ', <span class="wpmpublisher">' . $doc->city . ': ' . $doc->publisher . '</span>';
+				} else {
+					$tmps .= ', <span class="wpmpublisher">' . $doc->publisher . '</span>';
+				}
+			}
 			if (isset($doc->url)) {
 				$tmps .= ', <span class="wpmurl"><a href="' . 
 					$doc->url . '">URL</a></span>';
 			}
 			return $tmps;
-			// type: "Book Section", "Journal Article", "Generic", ...
-			// anames: title, authors (A), tags (A), publication_outlet, year, abstract,
-			//	identifiers (A) ("doi:", "issn:"), url, type, notes, 
-			//	discipline ("discipline", "subdiscipline")
 		}
 
 		/* create database tables for the caching functionality */

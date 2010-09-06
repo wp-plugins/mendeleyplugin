@@ -29,6 +29,10 @@ The entries are formatted the following way - so, the style can be tailored usin
 	   &lt;span class="wpmyear"&gt;($year)&lt;/span&gt;: 
 	   &lt;span class="wpmtitle"&gt;$title&lt;/span&gt;
 	   , &lt;span class="wpmoutlet"&gt;$publication_outlet&lt;/span&gt;
+	   &lt;span class="wpmvolume"&gt;$volume&lt;/span&gt;&lt;span class="wpmissue"&gt;($issue)&lt;/span&gt;
+	   , &lt;span class="wpmeditors"&gt;$editors&lt;/span&gt;
+	   , &lt;span class="wpmpages"&gt;$pages&lt;/span&gt;
+	   , &lt;span class="wpmpublisher"&gt;$city: $publisher&lt;/span&gt;
 	   , &lt;span class="wpmurl"&gt;$url&lt;/span&gt;
 	&lt;/p&gt;
 </pre>
@@ -69,6 +73,10 @@ and authorize the API. To do so the following steps have to be taken:
 == Screenshots ==
 
 == Change log ==
+
+= 0.4 =
+* Support for additional document attributes (display journal issue, pages etc)
+* Initial support for internationalization
 
 = 0.3.1 =
 * Corrected type in source code

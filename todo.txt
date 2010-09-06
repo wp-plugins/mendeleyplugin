@@ -1,4 +1,2 @@
 TODOs for the plugin:
-- support more attributes when document details returns them
 - lookup collections by name
-
