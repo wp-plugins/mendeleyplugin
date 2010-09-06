@@ -45,6 +45,10 @@ The output in the widgets is formatted the following way:
 	   &lt;span class="wpmyear"&gt;($year)&lt;/span&gt;: 
 	   &lt;span class="wpmtitle"&gt;$title&lt;/span&gt;
 	   , &lt;span class="wpmoutlet"&gt;$publication_outlet&lt;/span&gt;
+	   &lt;span class="wpmvolume"&gt;$volume&lt;/span&gt;&lt;span class="wpmissue"&gt;($issue)&lt;/span&gt;
+	   , &lt;span class="wpmeditors"&gt;$editors&lt;/span&gt;
+	   , &lt;span class="wpmpages"&gt;$pages&lt;/span&gt;
+	   , &lt;span class="wpmpublisher"&gt;$city: $publisher&lt;/span&gt;
 	   , &lt;span class="wpmurl"&gt;$url&lt;/span&gt;
 	&lt;/li&gt;
 	...
