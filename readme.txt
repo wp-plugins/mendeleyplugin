@@ -17,9 +17,10 @@ Using the public API from Mendeley, meta-information on documents in personal, p
 The lists can be included in posts or pages using WordPress shortcodes:
 &#91;mendeley type="collection" id="xxx" groupby="xxx"&#93;
 &#91;mendeley type="shared" id="xxx" groupby="xxx"&#93;
+&#91;mendeley type="shared" id="xxx" groupby="xxx" filter="author=Michael Koch"&#93;
 - the attribute "groupby" is optional; possible values currently are: "year"
 
-Additionally, there are very first versions widgets to display the content of collections or shared collections in widget areas of a theme.
+Additionally, there are widgets to display the content of collections or shared collections in widget areas of a theme.
 
 The entries are formatted the following way - so, the style can be tailored using CSS. 
 <pre>
@@ -41,36 +42,37 @@ The output in the widgets is formatted the following way:
 <pre>
     &lt;ul class="wpmlist"&gt;
 	&lt;li class="wpmlistref"&gt;
-	   &lt;span class="wpmauthors"&gt;$authors&lt/span&gt;
-	   &lt;span class="wpmyear"&gt;($year)&lt;/span&gt;: 
-	   &lt;span class="wpmtitle"&gt;$title&lt;/span&gt;
-	   , &lt;span class="wpmoutlet"&gt;$publication_outlet&lt;/span&gt;
-	   &lt;span class="wpmvolume"&gt;$volume&lt;/span&gt;&lt;span class="wpmissue"&gt;($issue)&lt;/span&gt;
-	   , &lt;span class="wpmeditors"&gt;$editors&lt;/span&gt;
-	   , &lt;span class="wpmpages"&gt;$pages&lt;/span&gt;
-	   , &lt;span class="wpmpublisher"&gt;$city: $publisher&lt;/span&gt;
-	   , &lt;span class="wpmurl"&gt;$url&lt;/span&gt;
+	title (if url is defined, then this title is linked to url)
 	&lt;/li&gt;
 	...
 	&lt;/ul&gt;
 </pre>
 
+You can use the plugin in non widgetized themes, just try
+<pre>
+echo $mendeleyPlugin->formatSharedCollection(763, 10, array ('author' => 'Michael Koch'));
+</pre>
+
 For using the plugin you have to obtain an API key from Mendeley,
 enter this Customer Key in the configuration section of the plugin,
 and authorize the API. To do so the following steps have to be taken:
-1. install plubin
-1. activate plugin
-1. get Customer Key and Customer Secret from http://dev.mendeley.com/
-1. enter the information in the wp-mendeley tab in the backend
-1. press "Get Access Key" on the wp-mendeley configuration page
-1. then you are redirected to the Mendeley web site to authorize the request, and redirected back to the blog
-1. now you can use shortcodes in your pages and blogs 
+<ol>
+<li> install plugin
+<li> activate plugin
+<li> get Customer Key and Customer Secret from http://dev.mendeley.com/
+<li> enter the information in the wp-mendeley tab in the backend
+<li> press "Get Access Key" on the wp-mendeley configuration page
+<li> then you are redirected to the Mendeley web site to authorize the request, and redirected back to the blog
+<li> now you can use shortcodes in your pages and blogs
+</ol> 
 
 == Installation ==
 
-1. Upload archive contents to the `/wp-content/plugins/` directory
-1. Activate the plugin through the 'Plugins' menu in WordPress
-1. Configure your settings (especially enter Customer Key and Customer Secret obtained from Mendeley), and request Access Token
+<ol>
+<li> Upload archive contents to the `/wp-content/plugins/` directory
+<li> Activate the plugin through the 'Plugins' menu in WordPress
+<li> Configure your settings (especially enter Customer Key and Customer Secret obtained from Mendeley), and request Access Token
+</ol>
 
 == Frequently Asked Questions ==
 
@@ -78,12 +80,22 @@ and authorize the API. To do so the following steps have to be taken:
 
 == Change log ==
 
+= 0.5 =
+* tested and debugged widget support
+* provided widget support for non widgetized themes
+* added functionality to filter for attributes in widget lists
+* added functionality to filter for attributes in lists on pages (shortcode "mendeley")
+
+= 0.4.1 =
+* When displaying URLs, use different anchor texts for pdf, scribd, ...
+* Load oauth library only when no other oauth library has been loaded before - to avoid a "Cannot redeclare class oauthconsumer" runtime error
+
 = 0.4 =
 * Support for additional document attributes (display journal issue, pages etc)
 * Initial support for internationalization
 
-= 0.3.1 =
-* Corrected type in source code
+= 0.3.1 (11.08.2010) =
+* Corrected typo in source code
 * More consistent and complete support for CSS formatting output
 * Widgets now support display of latest / first x documents from collection
 

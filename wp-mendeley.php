@@ -2,7 +2,8 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.4
+Version: 0.5
+
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
 License: http://www.opensource.org/licenses/mit-license.php
@@ -33,14 +34,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-require_once "oauth/OAuth.php"; 
+if (!class_exists("OAuthConsumer")) {
+	require_once "oauth/OAuth.php"; 
+}
 
 define( 'REQUEST_TOKEN_ENDPOINT', 'http://www.mendeley.com/oauth/request_token/' );
 define( 'ACCESS_TOKEN_ENDPOINT', 'http://www.mendeley.com/oauth/access_token/' );
 define( 'AUTHORIZE_ENDPOINT', 'http://www.mendeley.com/oauth/authorize/' );
 define( 'MENDELEY_OAPI_URL', 'http://www.mendeley.com/oapi/' );
 
-define( 'PLUGIN_VERSION' , '0.4' );
+define( 'PLUGIN_VERSION' , '0.5' );
 define( 'PLUGIN_DB_VERSION', 1 );
 
 // JSON services for PHP4
@@ -96,6 +99,20 @@ if (!class_exists("MendeleyPlugin")) {
 			$type = $attrs['type'];
 			$id = $attrs['id'];
 			$groupby = $attrs['groupby'];
+			$filter = $attrs['filter'];
+			$filterattr = NULL;
+			$filterval = NULL;
+			if (isset($filter)) {
+				if (strlen($filter)>0) {
+					$filterarr = explode('=', $filter);
+					$filterattr = $filterarr[0];
+					if (isset($filterarr[1])) {
+						$filterval = $filterarr[1];
+					} else {
+						$filterattr = NULL;
+					}
+				}
+			}
 			$result = "unknown type '$type'";
 			if ($type == "collection") {
 				$result = "";
@@ -107,6 +124,27 @@ if (!class_exists("MendeleyPlugin")) {
 				$currentgroupbyval = "";
 				$groupbyval = "";
 				foreach($docarr as $doc) {
+					// check for filter
+					if (!is_null($filterattr)) {
+						$filtertrue = 0;
+						if (strcmp($filterattr, 'author')==0) {
+                                                	$author_arr = $doc->authors;
+                                                	for($i = 0; $i < sizeof($author_arr); ++$i) {
+                                                		if (stristr($author_arr[$i], $filterval) === FALSE) {
+                                                			continue;
+                                                		} else {
+                                                			$filtertrue = 1;
+                                                			break;
+                                                		}
+                                                	}
+                                                } else {
+                                                	// other attributes
+                                                	if (strcmp($keyval, $doc->{$key})==0) {
+                                                		$filtertrue = 1;
+                                                	}
+                                                }
+						if ($filtertrue == 0) { continue; }
+					}
 					// check if groupby-value changed
 					if ($groupby == "year") {
 						$groupbyval = $doc->year;
@@ -128,6 +166,27 @@ if (!class_exists("MendeleyPlugin")) {
 				$currentgroupbyval = "";
 				$groupbyval = "";
 				foreach($docarr as $doc) {
+					// check for filter
+					if (!is_null($filterattr)) {
+						$filtertrue = 0;
+						if (strcmp($filterattr, 'author')==0) {
+                                                	$author_arr = $doc->authors;
+                                                	for($i = 0; $i < sizeof($author_arr); ++$i) {
+                                                		if (stristr($author_arr[$i], $filterval) === FALSE) {
+                                                			continue;
+                                                		} else {
+                                                			$filtertrue = 1;
+                                                			break;
+                                                		}
+                                                	}
+                                                } else {
+                                                	// other attributes
+                                                	if (strcmp($keyval, $doc->{$key})==0) {
+                                                		$filtertrue = 1;
+                                                	}
+                                                }
+						if ($filtertrue == 0) { continue; }
+					}
 					// check if groupby-value changed
 					if ($groupby == "year") {
 						$groupbyval = $doc->year;
@@ -209,12 +268,35 @@ if (!class_exists("MendeleyPlugin")) {
 			}
 			return $res;
 		}
+
+		/* sort the documents that have been loaded before using loadDocs */
+		function xxsortDocs($docarr, $sortby) {
+			usort($docarr, "cmpmendeleydoc");
+		}
+		function sortDocs($data, $sortby) {
+			for ($i = count($data) - 1; $i >= 0; $i--) {
+				$swapped = false;
+				for ($j = 0; $j < $i; $j++) {
+					if ( $data[$j]->year < $data[$j + 1]->year ) {
+						$tmp = $data[$j];
+                				$data[$j] = $data[$j + 1];
+                				$data[$j + 1] = $tmp;
+                				$swapped = true;
+					}
+				}
+				if (!$swapped) {
+					return $data;
+				}
+			}
+			return $data;
+		}
 		
 		/* group the documents that have been loaded before using loadDocs,
 		   i.e. $docarr holds an array of meta information arrays, after
 		   the function ran, the meta information arrays (document objects)
 		   will be grouped according to the groupby parameter. */
 		function groupDocs($docarr, $groupby) {
+			// TBD: Currently "groupby" is ignored - grouping is always done by "year"
 			$grpvalues = array();
 			for($i=0; $i <= sizeof($docarr); $i++) {
 				$doc = $docarr[$i];
@@ -298,9 +380,25 @@ if (!class_exists("MendeleyPlugin")) {
 				}
 			}
 			if (isset($doc->url)) {
+				// determine the text for the anchor
+				$atext = "URL";
+				if (endsWith($doc->url, "pdf", false)) { $atext = "PDF"; }
+				if (endsWith($doc->url, "ps", false)) { $atext = "PS"; }
+				if (endsWith($doc->url, "zip", false)) { $atext = "ZIP"; }
+				if (startsWith($doc->url, "http://www.scribd.com", false)) { $atext = "Scribd"; }
 				$tmps .= ', <span class="wpmurl"><a href="' . 
-					$doc->url . '">URL</a></span>';
+					$doc->url . '">' . $atext . '</a></span>';
 			}
+			return $tmps;
+		}
+		function formatDocumentShort($doc) {
+			$tmps = '<span class="wpmtitle">';
+			if (isset($doc->url)) {
+				$tmps .= '<a href="' .  $doc->url . '">' . $doc->title . '</a>';
+			} else {
+				$tmps .= $doc->title;
+			}
+			$tmps .= '</span>';
 			return $tmps;
 		}
 
@@ -636,11 +734,104 @@ and stored in the plugin.</p>
 </div>
 <?php
 		}
+
+/* functions to be used in non-widgetized themes instead of widgets */
+
+		/* return formatted version of collection elements */
+		function formatCollection($id, $maxdocs = 10, $filter = NULL) {
+			if (is_null($id)) return '';
+              		$result = '';
+			$res = $this->getCollection($id);
+			$docarr = $this->loadDocs($res);
+			$docarr = $this->sortDocs($docarr, "year");
+			$count = 0;
+			foreach($docarr as $doc) {  
+				if (!is_null($filter)) {
+					$filtertrue = 0;
+					foreach ($filter as $key => $keyval) {
+						// special handling for authors
+						if (strcmp($key, 'author')==0) {
+							$author_arr = $doc->authors;
+							for($i = 0; $i < sizeof($author_arr); ++$i) {
+								if (stristr($author_arr[$i], $keyval) === FALSE) {
+									continue;
+								} else {
+									$filtertrue = 1;
+									break;
+								}
+							}
+						} else {
+						// other attributes
+							if (strcmp($keyval, $doc->{$key})==0) {
+								$filtertrue = 1;
+							}
+						}
+						break; // just one filter now ...
+					}
+					if ($filtertrue < 1) {
+						continue;
+					}
+				}
+				$result .= '<li class="wpmlistref">' . $this->formatDocumentShort($doc) .  '</li>';
+				$count++;
+				if ($count > $maxdocs) break;
+			}
+			return $result;
+		}
+
+		/* return formatted version of shared collection elements */
+		function formatSharedCollection($id, $maxdocs = 10, $filter = NULL) {
+			if (is_null($id)) return '';
+              		$result = '';
+			$res = $this->getSharedCollection($id);
+			$docarr = $this->loadDocs($res);
+			$docarr = $this->sortDocs($docarr, "year");
+			$count = 0;
+			foreach($docarr as $doc) {  
+				if (!is_null($filter)) {
+					$filtertrue = 0;
+					foreach ($filter as $key => $keyval) {
+						// special handling for authors
+						if (strcmp($key, 'author')==0) {
+							$author_arr = $doc->authors;
+							for($i = 0; $i < sizeof($author_arr); ++$i) {
+								if (stristr($author_arr[$i], $keyval) === FALSE) {
+									continue;
+								} else {
+									$filtertrue = 1;
+									break;
+								}
+							}
+						} else {
+						// other attributes
+							if (strcmp($keyval, $doc->{$key})==0) {
+								$filtertrue = 1;
+							}
+						}
+						break; // just one filter now ...
+					}
+					if ($filtertrue < 1) {
+						continue;
+					}
+				}
+				$result .= '<li class="wpmlistref">' . $this->formatDocumentShort($doc) .  '</li>';
+				$count++;
+				if ($count > $maxdocs) break;
+			}
+			return $result;
+		}
+
 	}
 }
 
 if (class_exists("MendeleyPlugin")) {
 	$mendeleyPlugin = new MendeleyPlugin();
+	function cmpmendeleydoc($a, $b) {
+		if ($a->year == $b->year) {
+			return 0;
+		}
+		return ($a->year < $b->year) ? -1 : 1;
+	}
 }
 if (!function_exists("wp_mendeley_add_pages")) {
 	function wp_mendeley_add_pages() {
@@ -678,19 +869,21 @@ class MendeleyCollectionWidget extends WP_Widget {
         extract( $args );
         $title = apply_filters('widget_title', $instance['title']);
         $cid = apply_filters('widget_cid', $instance['cid']);
-        $count = apply_filters('widget_count', $instance['count']);
+        $maxdocs = apply_filters('widget_cid', $instance['count']);
+        $filterattr = apply_filters('widget_cid', $instance['filterattr']);
+        $filterval = apply_filters('widget_cid', $instance['filterval']);
         ?>
               <?php echo $before_widget; ?>
                   <?php if ( $title )
                         echo $before_title . $title . $after_title; ?>
               <?php
-              	$result = '<ul class="wpmlist">';
-				$res = $mendeleyPlugin->getCollection($id);
-				$docarr = $mendeleyPlugin->loadDocs($res, $count);
-				foreach($docarr as $doc) {
-					$result = $result . '<li class="wpmlistref">'.$this->formatDocument($doc)."</li>";
-				}
-				$result .= '</ul>';
+              		$result = '<ul class="wpmlist">';
+			if (strlen($filterattr)<1) {
+				$result .= $mendeleyPlugin->formatCollection($cid, $maxdocs);
+			} else {
+				$result .= $mendeleyPlugin->formatCollection($cid, $maxdocs, array($filterattr => $filterval));
+			}
+			$result .= '</ul>';
                ?>
               <?php echo $after_widget; ?>
         <?php
@@ -702,6 +895,8 @@ class MendeleyCollectionWidget extends WP_Widget {
 		$instance['title'] = strip_tags($new_instance['title']);
 		$instance['cid'] = strip_tags($new_instance['cid']);
 		$instance['count'] = strip_tags($new_instance['count']);
+		$instance['filterattr'] = strip_tags($new_instance['filterattr']);
+		$instance['filterval'] = strip_tags($new_instance['filterval']);
         return $instance;
     }
 
@@ -710,10 +905,14 @@ class MendeleyCollectionWidget extends WP_Widget {
         $title = esc_attr($instance['title']);
         $cid = esc_attr($instance['cid']);
         $count = esc_attr($instance['count']);
+        $filterattr = esc_attr($instance['filterattr']);
+        $filterval = esc_attr($instance['filterval']);
         ?>
             <p><label for="<?php echo $this->get_field_id('title'); ?>"><?php _e('Title:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name('title'); ?>" type="text" value="<?php echo $title; ?>" /></label></p>
             <p><label for="<?php echo $this->get_field_id('cid'); ?>"><?php _e('Collection Id:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('cid'); ?>" name="<?php echo $this->get_field_name('cid'); ?>" type="text" value="<?php echo $cid; ?>" /></label></p>
- 			<p><label for="<?php echo $this->get_field_id('count'); ?>"><?php _e('Number of docs to display:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('count'); ?>" name="<?php echo $this->get_field_name('count'); ?>" type="text" value="<?php echo $count; ?>" /></label></p>
+ 		<p><label for="<?php echo $this->get_field_id('count'); ?>"><?php _e('Number of docs to display:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('count'); ?>" name="<?php echo $this->get_field_name('count'); ?>" type="text" value="<?php echo $count; ?>" /></label></p>
+ 		<p><label for="<?php echo $this->get_field_id('filterattr'); ?>"><?php _e('Attribute name to filter for:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('filterattr'); ?>" name="<?php echo $this->get_field_name('filterattr'); ?>" type="text" value="<?php echo $filterattr; ?>" /></label></p>
+ 		<p><label for="<?php echo $this->get_field_id('filterval'); ?>"><?php _e('Attribute value:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('filterval'); ?>" name="<?php echo $this->get_field_name('filterval'); ?>" type="text" value="<?php echo $filterval; ?>" /></label></p>
         <?php 
     }
 
@@ -733,19 +932,21 @@ class MendeleySharedCollectionWidget extends WP_Widget {
         extract( $args );
         $title = apply_filters('widget_title', $instance['title']);
         $cid = apply_filters('widget_cid', $instance['cid']);
-        $count = apply_filters('widget_cid', $instance['count']);
+        $maxdocs = apply_filters('widget_cid', $instance['count']);
+        $filterattr = apply_filters('widget_cid', $instance['filterattr']);
+        $filterval = apply_filters('widget_cid', $instance['filterval']);
         ?>
               <?php echo $before_widget; ?>
                   <?php if ( $title )
                         echo $before_title . $title . $after_title; ?>
               <?php
-              	$result = '<ul class="wpmlist">';
-				$res = $mendeleyPlugin->getSharedCollection($id);
-				$docarr = $mendeleyPlugin->loadDocs($res, $count);
-				foreach($docarr as $doc) {
-					$result = $result . '<li class="wpmlistref">' . $this->formatDocument($doc) . '</li>';
-				}
-				$result .= '</ul>';
+              		$result = '<ul class="wpmlist">';
+			if (strlen($filterattr)<1) {
+				$result .= $mendeleyPlugin->formatSharedCollection($cid, $maxdocs);
+			} else {
+				$result .= $mendeleyPlugin->formatSharedCollection($cid, $maxdocs, array($filterattr => $filterval));
+			}
+			$result .= '</ul>';
                ?>
               <?php echo $after_widget; ?>
         <?php
@@ -757,6 +958,8 @@ class MendeleySharedCollectionWidget extends WP_Widget {
 		$instance['title'] = strip_tags($new_instance['title']);
 		$instance['cid'] = strip_tags($new_instance['cid']);
 		$instance['count'] = strip_tags($new_instance['count']);
+		$instance['filterattr'] = strip_tags($new_instance['filterattr']);
+		$instance['filterval'] = strip_tags($new_instance['filterval']);
         return $instance;
     }
 
@@ -765,17 +968,20 @@ class MendeleySharedCollectionWidget extends WP_Widget {
         $title = esc_attr($instance['title']);
         $cid = esc_attr($instance['cid']);
         $count = esc_attr($instance['count']);
+        $filterattr = esc_attr($instance['filterattr']);
+        $filterval = esc_attr($instance['filterval']);
         ?>
             <p><label for="<?php echo $this->get_field_id('title'); ?>"><?php _e('Title:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name('title'); ?>" type="text" value="<?php echo $title; ?>" /></label></p>
             <p><label for="<?php echo $this->get_field_id('cid'); ?>"><?php _e('Shared Collection Id:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('cid'); ?>" name="<?php echo $this->get_field_name('cid'); ?>" type="text" value="<?php echo $cid; ?>" /></label></p>
- 			<p><label for="<?php echo $this->get_field_id('count'); ?>"><?php _e('Number of docs to display:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('count'); ?>" name="<?php echo $this->get_field_name('count'); ?>" type="text" value="<?php echo $count; ?>" /></label></p>
+ 		<p><label for="<?php echo $this->get_field_id('count'); ?>"><?php _e('Number of docs to display:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('count'); ?>" name="<?php echo $this->get_field_name('count'); ?>" type="text" value="<?php echo $count; ?>" /></label></p>
+ 		<p><label for="<?php echo $this->get_field_id('filterattr'); ?>"><?php _e('Attribute name to filter for:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('filterattr'); ?>" name="<?php echo $this->get_field_name('filterattr'); ?>" type="text" value="<?php echo $filterattr; ?>" /></label></p>
+ 		<p><label for="<?php echo $this->get_field_id('filterval'); ?>"><?php _e('Attribute value:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('filterval'); ?>" name="<?php echo $this->get_field_name('filterval'); ?>" type="text" value="<?php echo $filterval; ?>" /></label></p>
         <?php 
     }
 
 } // class MendleySharedCollectionWidget
 
 // register MendeleyWidget widget
-add_action('widgets_init', create_function('', 'return register_widget("MendeleyCollectionWidget");'));
 add_action('widgets_init', create_function('', 'return register_widget("MendeleySharedCollectionWidget");'));
 
 
@@ -824,6 +1030,21 @@ function redirect($url){
         echo '</noscript>'; exit;
     }
 }//==== End -- Redirect
+
+function startsWith($string, $prefix, $caseSensitive = true) {
+	if(!$caseSensitive) {
+	return stripos($string, $prefix, 0) === 0;
+	}
+	return strpos($string, $prefix, 0) === 0;
+}
+
+function endsWith($string, $postfix, $caseSensitive = true) {
+	$expectedPostition = strlen($string) - strlen($postfix);
+	if(!$caseSensitive) {
+		return strripos($string, $postfix, 0) === $expectedPostition;
+	}
+	return strrpos($string, $postfix, 0) === $expectedPostition;
+}
 
 
 ?>
