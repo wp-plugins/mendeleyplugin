@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.5
+Version: 0.5.1
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -533,8 +533,8 @@ if (!class_exists("MendeleyPlugin")) {
 			update_option($this->adminOptionsName, $this->settings);
 			// initialize some variables
 			$consumer_key = $this->settings['consumer_key'];
-            $consumer_secret = $this->settings['consumer_secret'];
-            $this->consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
+            		$consumer_secret = $this->settings['consumer_secret'];
+            		$this->consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
 			$this->sign_method = new OAuthSignatureMethod_HMAC_SHA1();
 			$acc_token = $this->settings['access_token'];
 			$acc_token_secret = $this->settings['access_token_secret'];
@@ -576,8 +576,8 @@ if (!class_exists("MendeleyPlugin")) {
 				}
 				update_option($this->adminOptionsName, $this->settings);
 				$consumer_key = $this->settings['consumer_key'];
-                $consumer_secret = $this->settings['consumer_secret'];
-                $this->consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
+                		$consumer_secret = $this->settings['consumer_secret'];
+                		$this->consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
 
 				// sign request and get request token
 				$params = array();
@@ -602,7 +602,7 @@ if (!class_exists("MendeleyPlugin")) {
 			}
 			// check if we should start a access_token request (callback)
 			if (isset($_GET['access_mendeleyPlugin']) &&
-				($_GET['access_mendeleyPlugin'] == "true")) {
+				(strcmp($_GET['access_mendeleyPlugin'],'true')==0)) {
 		
 				$req_token = $this->settings['req_token'];
 				$req_token_secret = $this->settings['req_token_secret'];
@@ -618,13 +618,15 @@ if (!class_exists("MendeleyPlugin")) {
 				// parse and generate access consumer from values
 				$token = array();
 				parse_str($access_ret, $token);
-				$this->settings['access_token'] = $token['oauth_token'];
-				$this->settings['access_token_secret'] = $token['oauth_token_secret'];
-				$this->accesstoken = new OAuthConsumer($token['oauth_token'], $token['oauth_token_secret'], NULL);
-				update_option($this->adminOptionsName, $this->settings);
+				if (isset($token['oauth_token']) && (strlen(trim($token['oauth_token']))>0)) {
+					$this->settings['access_token'] = $token['oauth_token'];
+					$this->settings['access_token_secret'] = $token['oauth_token_secret'];
+					$this->accesstoken = new OAuthConsumer($token['oauth_token'], $token['oauth_token_secret'], NULL);
+					update_option($this->adminOptionsName, $this->settings);
 ?>
 <div class="updated"><p><strong><?php _e("New Access Token retrieved.", "MendeleyPlugin"); ?></strong></p></div>
 <?php
+				}
 			}
 			// display the admin panel options
 ?>
@@ -639,6 +641,7 @@ The lists can be included in posts or pages using WordPress shortcodes:
 <ul>
 <li>- [mendeley type="collection" id="xxx" groupby=""], groupby=year
 <li>- [mendeley type="shared" id="xxx" groupby=""]
+<li>- [mendeley type="shared" id="xxx" groupby="" filter=""], filter=ATTRNAME=AVALUE, e.g. author=Michael Koch
 </ul>
 
 <h3>Settings</h3>

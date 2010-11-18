@@ -15,10 +15,12 @@ Mendeley Plugin for WordPress is a plugin for displaying information from the Me
 Using the public API from Mendeley, meta-information on documents in personal, public or shared collections is loaded and formatted as bibliographic entries.
 
 The lists can be included in posts or pages using WordPress shortcodes:
+<pre>
 &#91;mendeley type="collection" id="xxx" groupby="xxx"&#93;
 &#91;mendeley type="shared" id="xxx" groupby="xxx"&#93;
 &#91;mendeley type="shared" id="xxx" groupby="xxx" filter="author=Michael Koch"&#93;
 - the attribute "groupby" is optional; possible values currently are: "year"
+</pre>
 
 Additionally, there are widgets to display the content of collections or shared collections in widget areas of a theme.
 
@@ -74,11 +76,16 @@ and authorize the API. To do so the following steps have to be taken:
 <li> Configure your settings (especially enter Customer Key and Customer Secret obtained from Mendeley), and request Access Token
 </ol>
 
+There are some reported problems with other plugins that are using the OAuth PHP library like tweetblender: If the other plugin does not check if the library is already loaded (as ours does), initializing the other plugins after wp_mendeley will result in an error message. In this case deactivate the other plugin.
+
 == Frequently Asked Questions ==
 
 == Screenshots ==
 
 == Change log ==
+
+= 0.5.1 =
+* corrected bug that used to overwrite access token with empty string after it was received and stored in database
 
 = 0.5 =
 * tested and debugged widget support
