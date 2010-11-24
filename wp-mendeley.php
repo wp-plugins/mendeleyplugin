@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.5.1
+Version: 0.5.2
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -80,18 +80,18 @@ if (!class_exists("MendeleyPlugin")) {
 			$request->sign_request($this->sign_method, $this->consumer, $this->acctoken);
 
 			// send request
-			if ($this->settings['debug'] == 'true') {
+			if ($this->settings['debug'] === 'true') {
 				echo "<p>Request: ".$request->to_url()."</p>";
 			}
 			$resp = run_curl($request->to_url(), 'GET');
-			if ($this->settings['debug'] == 'true') {
+			if ($this->settings['debug'] === 'true') {
 				echo "<p>Response:</p>";
 				var_dump($resp);
 			}
 
 			$result = json_decode($resp);
 			if ($result->error) {
-				echo "<p>Error: " . $result->error . "</p>";
+				echo "<p>Mendeley Plugin Error: " . $result->error . "</p>";
 			}
 			return $result;
 		}
@@ -114,7 +114,7 @@ if (!class_exists("MendeleyPlugin")) {
 				}
 			}
 			$result = "unknown type '$type'";
-			if ($type == "collection") {
+			if ($type === "collection") {
 				$result = "";
 				$res = $this->getCollection($id);
 				$docarr = $this->loadDocs($res);
@@ -146,7 +146,7 @@ if (!class_exists("MendeleyPlugin")) {
 						if ($filtertrue == 0) { continue; }
 					}
 					// check if groupby-value changed
-					if ($groupby == "year") {
+					if ($groupby === "year") {
 						$groupbyval = $doc->year;
 					}
 					if ($groupbyval != $currentgroupbyval) {
@@ -156,7 +156,7 @@ if (!class_exists("MendeleyPlugin")) {
 					$result = $result . '<p class="wpmref">' . $this->formatDocument($doc) . '</p>';
 				}
 			}
-			if ($type == "shared") {
+			if ($type === "shared") {
 				$result = "";
 				$res = $this->getSharedCollection($id);
 				$docarr = $this->loadDocs($res);
@@ -188,7 +188,7 @@ if (!class_exists("MendeleyPlugin")) {
 						if ($filtertrue == 0) { continue; }
 					}
 					// check if groupby-value changed
-					if ($groupby == "year") {
+					if ($groupby === "year") {
 						$groupbyval = $doc->year;
 					}
 					if ($groupbyval != $currentgroupbyval) {
@@ -431,15 +431,15 @@ if (!class_exists("MendeleyPlugin")) {
 		/* check cache database */
 		function getDocumentFromCache($docid) {
 			global $wpdb;
-			if ("$docid" == "") return NULL;
-			if ($this->settings['cache_docs'] == "no") return NULL;
+			if ("$docid" === "") return NULL;
+			if ($this->settings['cache_docs'] === "no") return NULL;
 			$table_name = $wpdb->prefix . "mendeleycache";
 			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=0 AND mid=$docid");
 			if ($dbdoc) {
 				// check timestamp
 				$delta = 3600000;
-				if ($this->settings['cache_docs'] == "day") { $delta = 86400000; }
-				if ($this->settings['cache_docs'] == "week") { $delta = 604800000; }
+				if ($this->settings['cache_docs'] === "day") { $delta = 86400000; }
+				if ($this->settings['cache_docs'] === "week") { $delta = 604800000; }
 				if ($dbdoc->time + $delta > time()) {
 					return json_decode($dbdoc->content);
 				}
@@ -448,15 +448,15 @@ if (!class_exists("MendeleyPlugin")) {
 		}
 		function getCollectionFromCache($cid) {
 			global $wpdb;
-			if ("$cid" == "") return NULL;
-			if ($this->settings['cache_collections'] == "no") return NULL;
+			if ("$cid" === "") return NULL;
+			if ($this->settings['cache_collections'] === "no") return NULL;
 			$table_name = $wpdb->prefix . "mendeleycache";
 			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=1 AND mid=$cid");
 			if ($dbdoc) {
 				// check timestamp
 				$delta = 3600000;
-				if ($this->settings['cache_collections'] == "day") { $delta = 86400000; }
-				if ($this->settings['cache_collections'] == "week") { $delta = 604800000; }
+				if ($this->settings['cache_collections'] === "day") { $delta = 86400000; }
+				if ($this->settings['cache_collections'] === "week") { $delta = 604800000; }
 				if ($dbdoc->time + $delta > time()) {
 					return json_decode($dbdoc->content);
 				}
@@ -465,15 +465,15 @@ if (!class_exists("MendeleyPlugin")) {
 		}
 		function getSharedCollectionFromCache($cid) {
 			global $wpdb;
-			if ("$cid" == "") return NULL;
-			if ($this->settings['cache_collections'] == "no") return NULL;
+			if ("$cid" === "") return NULL;
+			if ($this->settings['cache_collections'] === "no") return NULL;
 			$table_name = $wpdb->prefix . "mendeleycache";
 			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=2 AND mid=$cid");
 			if ($dbdoc) {
 			// check timestamp
 				$delta = 3600000;
-				if ($this->settings['cache_collections'] == "day") { $delta = 86400000; }
-				if ($this->settings['cache_collections'] == "week") { $delta = 604800000; }
+				if ($this->settings['cache_collections'] === "day") { $delta = 86400000; }
+				if ($this->settings['cache_collections'] === "week") { $delta = 604800000; }
 				if ($dbdoc->time + $delta > time()) {
 					return json_decode($dbdoc->content);
 				}
@@ -517,6 +517,8 @@ if (!class_exists("MendeleyPlugin")) {
 				return $this->settings;
 			$this->settings = array(
 				'debug' => 'false',
+				'cache_collections' => 'week',
+				'cache_docs' => 'week',
 				'consumer_key' => '',
 				'consumer_secret' => '',
 				'req_token' => '',
@@ -563,7 +565,7 @@ if (!class_exists("MendeleyPlugin")) {
 				}
 				update_option($this->adminOptionsName, $this->settings);
 ?>
-<div class="updated"><p><strong><?php _e("Settings Updated.", "MendeleyPlugin"); ?></strong></p></div>
+<div class="updated"><p><strong><?php _e("Settings updated.", "MendeleyPlugin"); ?></strong></p></div>
 <?php
 			}
 			// check if we should start a request_token, authorize request
@@ -648,25 +650,28 @@ The lists can be included in posts or pages using WordPress shortcodes:
 
 <h4>Debug</h4>
 
-<p><input type="radio" id="debug_yes" name="debug" value="true" <?php if ($this->settings['debug'] == "true") { _e('selected="selected"', "MendeleyPlugin"); }?> /> Yes&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" id="debug_no" name="debug" value="false" <?php if ($this->settings['debug'] == "false") { _e('checked="checked"', "MendeleyPlugin"); }?>/> No</p>
+<p><input type="radio" id="debug_yes" name="debug" value="true" <?php if ($this->settings['debug'] === "true") { _e(' checked="checked"', "MendeleyPlugin"); }?> /> Yes&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" id="debug_no" name="debug" value="false" <?php if ($this->settings['debug'] === "false") { _e(' checked="checked"', "MendeleyPlugin"); }?>/> No</p>
  
 <h4>Caching</h4>
 
+<p>
 Cache collection requests
     <select name="cacheCollections" size="1">
-      <option value="no" id="no" <?php if ($this->settings['cache_collections'] == "no") { echo(' selected="selected"'); }?>>no caching</option>
-      <option value="week" id="week" <?php if ($this->settings['cache_collections'] == "week") { echo(' selected="selected"'); }?>>refresh weekly</option>
-      <option value="day" id="day" <?php if ($this->settings['cache_collections'] == "day") { echo(' selected="selected"'); }?>>refresh daily</option>
-      <option value="hour" id="hour" <?php if ($this->settings['cache_collections'] == "hour") { echo(' selected="selected"'); }?>>refresh hourly</option>
+      <option value="no" id="no" <?php if ($this->settings['cache_collections'] === "no") { echo(' selected="selected"'); }?>>no caching</option>
+      <option value="week" id="week" <?php if ($this->settings['cache_collections'] === "week") { echo(' selected="selected"'); }?>>refresh weekly</option>
+      <option value="day" id="day" <?php if ($this->settings['cache_collections'] === "day") { echo(' selected="selected"'); }?>>refresh daily</option>
+      <option value="hour" id="hour" <?php if ($this->settings['cache_collections'] === "hour") { echo(' selected="selected"'); }?>>refresh hourly</option>
     </select><br/>
  Cache document requests
      <select name="cacheDocs" size="1">
-      <option value="no" id="no" <?php if ($this->settings['cache_docs'] == "no") { echo(' selected="selected"'); }?>>no caching</option>
-      <option value="week" id="day" <?php if ($this->settings['cache_docs'] == "week") { echo(' selected="selected"'); }?>>refresh weekly</option>
-      <option value="day" id="day" <?php if ($this->settings['cache_docs'] == "day") { echo(' selected="selected"'); }?>>refresh daily</option>
-      <option value="hour" id="hour" <?php if ($this->settings['cache_docs'] == "hour") { echo(' selected="selected"'); }?>>refresh hourly</option>
+      <option value="no" id="no" <?php if ($this->settings['cache_docs'] === "no") { echo(' selected="selected"'); }?>>no caching</option>
+      <option value="week" id="day" <?php if ($this->settings['cache_docs'] === "week") { echo(' selected="selected"'); }?>>refresh weekly</option>
+      <option value="day" id="day" <?php if ($this->settings['cache_docs'] === "day") { echo(' selected="selected"'); }?>>refresh daily</option>
+      <option value="hour" id="hour" <?php if ($this->settings['cache_docs'] === "hour") { echo(' selected="selected"'); }?>>refresh hourly</option>
     </select><br/>
 </p>
+
+<p>To turn on caching is important, because Mendeley currently imposes a rate limit to requests to the service (currently 150 requests per hour - and we need one request for every single document details). See <a href="http://dev.mendeley.com/docs/rate-limiting">http://dev.mendeley.com/docs/rate-limiting</a> for more details on this restriction.</p>
 
 <div class="submit">
 <input type="submit" name="update_mendeleyPlugin" value="Update Settings">
@@ -999,7 +1004,7 @@ add_action('widgets_init', create_function('', 'return register_widget("Mendeley
 function run_curl($url, $method = 'GET', $headers = null, $postvals = null){
     $ch = curl_init($url);
 
-    if ($method == 'GET'){
+    if ($method === 'GET'){
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     } else {
