@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.5.2
+Version: 0.5.3
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -43,7 +43,7 @@ define( 'ACCESS_TOKEN_ENDPOINT', 'http://www.mendeley.com/oauth/access_token/' )
 define( 'AUTHORIZE_ENDPOINT', 'http://www.mendeley.com/oauth/authorize/' );
 define( 'MENDELEY_OAPI_URL', 'http://www.mendeley.com/oapi/' );
 
-define( 'PLUGIN_VERSION' , '0.5' );
+define( 'PLUGIN_VERSION' , '0.5.2' );
 define( 'PLUGIN_DB_VERSION', 1 );
 
 // JSON services for PHP4
@@ -65,6 +65,7 @@ if (!class_exists("MendeleyPlugin")) {
 		protected $consumer = null;
 		protected $acctoken = null;
 		protected $sign_method = null;
+		protected $error_message = "";
 		function MendeleyPlugin() { // constructor
 			$this->init();
 		}
@@ -90,8 +91,9 @@ if (!class_exists("MendeleyPlugin")) {
 			}
 
 			$result = json_decode($resp);
-			if ($result->error) {
+			if (!is_null($result->error)) {
 				echo "<p>Mendeley Plugin Error: " . $result->error . "</p>";
+				$error_message = $result->error;
 			}
 			return $result;
 		}
@@ -123,6 +125,14 @@ if (!class_exists("MendeleyPlugin")) {
 				}
 				$currentgroupbyval = "";
 				$groupbyval = "";
+				if ($this->settings['debug'] === 'true') {
+					$result .= "<p>Mendeley Plugin: Unfiltered results count: " . count($docarr) . " ($error_message)</p>";
+				} else {
+					if (strlen($error_message)>0) {
+						$result .= "<p>Mendeley Plugin: no results - error message: $error_message</p>";
+						$error_message = "";
+					}
+				}
 				foreach($docarr as $doc) {
 					// check for filter
 					if (!is_null($filterattr)) {
@@ -165,6 +175,14 @@ if (!class_exists("MendeleyPlugin")) {
 				}
 				$currentgroupbyval = "";
 				$groupbyval = "";
+				if ($this->settings['debug'] === 'true') {
+					$result .= "<p>Mendeley Plugin: Unfiltered results count: " . count($docarr) . " ($error_message)</p>";
+				} else {
+					if (strlen($error_message)>0) {
+						$result .= "<p>Mendeley Plugin: no results - error message: $error_message</p>";
+						$error_message = "";
+					}
+				}
 				foreach($docarr as $doc) {
 					// check for filter
 					if (!is_null($filterattr)) {
@@ -223,7 +241,7 @@ if (!class_exists("MendeleyPlugin")) {
 			if (is_null($id)) return NULL;
 			// check cache
 			$result = $this->getSharedCollectionFromCache($id);
-			if (!is_null($result)) {
+			if (!is_null($result) && is_null($result->error)) {
 				$doc_ids = $result->document_ids;
 				return $doc_ids;
 			}

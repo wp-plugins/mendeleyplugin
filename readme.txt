@@ -86,6 +86,9 @@ and authorize the API. To do so the following steps have to be taken:
 
 == Change log ==
 
+= 0.5.3 =
+* added support for displaying error messages from service
+
 = 0.5.2 =
 * corrected several bugs (that had to do with handling options)
 * set caching to weekly as default option (due to rate limit restrictions of the api)
