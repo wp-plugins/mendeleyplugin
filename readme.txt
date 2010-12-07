@@ -20,6 +20,7 @@ The lists can be included in posts or pages using WordPress shortcodes:
 &#91;mendeley type="shared" id="xxx" groupby="xxx"&#93;
 &#91;mendeley type="shared" id="xxx" groupby="xxx" filter="author=Michael Koch"&#93;
 - the attribute "groupby" is optional; possible values currently are: "year"
+- possible attributes to filter for are: author, editor, title, year, tag, keyword, url, publication_outlet, pages, issue, volume, city, publisher, abstract
 </pre>
 
 Additionally, there are widgets to display the content of collections or shared collections in widget areas of a theme.
@@ -85,6 +86,10 @@ and authorize the API. To do so the following steps have to be taken:
 == Screenshots ==
 
 == Change log ==
+
+= 0.5.4 =
+* added support to filter by editor, tag and keyword in shortcode option
+* fixed bug in caching (which prevented the cache from updating)
 
 = 0.5.3 =
 * added support for displaying error messages from service

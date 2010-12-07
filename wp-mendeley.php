@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.5.3
+Version: 0.5.4
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -43,7 +43,7 @@ define( 'ACCESS_TOKEN_ENDPOINT', 'http://www.mendeley.com/oauth/access_token/' )
 define( 'AUTHORIZE_ENDPOINT', 'http://www.mendeley.com/oauth/authorize/' );
 define( 'MENDELEY_OAPI_URL', 'http://www.mendeley.com/oapi/' );
 
-define( 'PLUGIN_VERSION' , '0.5.2' );
+define( 'PLUGIN_VERSION' , '0.5.4' );
 define( 'PLUGIN_DB_VERSION', 1 );
 
 // JSON services for PHP4
@@ -147,6 +147,36 @@ if (!class_exists("MendeleyPlugin")) {
                                                 			break;
                                                 		}
                                                 	}
+						} else if (strcmp($filterattr, 'editor')==0) {
+                                                	$editor_arr = $doc->editors;
+                                                	for($i = 0; $i < sizeof($editor_arr); ++$i) {
+                                                		if (stristr($editor_arr[$i], $filterval) === FALSE) {
+                                                			continue;
+                                                		} else {
+                                                			$filtertrue = 1;
+                                                			break;
+                                                		}
+                                                	}
+						} else if (strcmp($filterattr, 'tag')==0) {
+                                                	$tag_arr = $doc->tags;
+                                                	for($i = 0; $i < sizeof($tag_arr); ++$i) {
+                                                		if (stristr($tag_arr[$i], $filterval) === FALSE) {
+                                                			continue;
+                                                		} else {
+                                                			$filtertrue = 1;
+                                                			break;
+                                                		}
+                                                	}
+						} else if (strcmp($filterattr, 'keyword')==0) {
+                                                	$keyword_arr = $doc->keywords;
+                                                	for($i = 0; $i < sizeof($keyword_arr); ++$i) {
+                                                		if (stristr($keyword_arr[$i], $filterval) === FALSE) {
+                                                			continue;
+                                                		} else {
+                                                			$filtertrue = 1;
+                                                			break;
+                                                		}
+                                                	}
                                                 } else {
                                                 	// other attributes
                                                 	if (strcmp($keyval, $doc->{$key})==0) {
@@ -197,7 +227,37 @@ if (!class_exists("MendeleyPlugin")) {
                                                 			break;
                                                 		}
                                                 	}
-                                                } else {
+						} else if (strcmp($filterattr, 'editor')==0) {
+                                                	$editor_arr = $doc->editors;
+                                                	for($i = 0; $i < sizeof($editor_arr); ++$i) {
+                                                		if (stristr($editor_arr[$i], $filterval) === FALSE) {
+                                                			continue;
+                                                		} else {
+                                                			$filtertrue = 1;
+                                                			break;
+                                                		}
+                                                	}
+						} else if (strcmp($filterattr, 'tag')==0) {
+                                                	$tag_arr = $doc->tags;
+                                                	for($i = 0; $i < sizeof($tag_arr); ++$i) {
+                                                		if (stristr($tag_arr[$i], $filterval) === FALSE) {
+                                                			continue;
+                                                		} else {
+                                                			$filtertrue = 1;
+                                                			break;
+                                                		}
+                                                	}
+						} else if (strcmp($filterattr, 'keyword')==0) {
+                                                	$keyword_arr = $doc->keywords;
+                                                	for($i = 0; $i < sizeof($keyword_arr); ++$i) {
+                                                		if (stristr($keyword_arr[$i], $filterval) === FALSE) {
+                                                			continue;
+                                                		} else {
+                                                			$filtertrue = 1;
+                                                			break;
+                                                		}
+                                                	}
+						} else {
                                                 	// other attributes
                                                 	if (strcmp($keyval, $doc->{$key})==0) {
                                                 		$filtertrue = 1;
@@ -455,9 +515,9 @@ if (!class_exists("MendeleyPlugin")) {
 			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=0 AND mid=$docid");
 			if ($dbdoc) {
 				// check timestamp
-				$delta = 3600000;
-				if ($this->settings['cache_docs'] === "day") { $delta = 86400000; }
-				if ($this->settings['cache_docs'] === "week") { $delta = 604800000; }
+				$delta = 3600;
+				if ($this->settings['cache_docs'] === "day") { $delta = 86400; }
+				if ($this->settings['cache_docs'] === "week") { $delta = 604800; }
 				if ($dbdoc->time + $delta > time()) {
 					return json_decode($dbdoc->content);
 				}
@@ -472,9 +532,9 @@ if (!class_exists("MendeleyPlugin")) {
 			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=1 AND mid=$cid");
 			if ($dbdoc) {
 				// check timestamp
-				$delta = 3600000;
-				if ($this->settings['cache_collections'] === "day") { $delta = 86400000; }
-				if ($this->settings['cache_collections'] === "week") { $delta = 604800000; }
+				$delta = 3600;
+				if ($this->settings['cache_collections'] === "day") { $delta = 86400; }
+				if ($this->settings['cache_collections'] === "week") { $delta = 604800; }
 				if ($dbdoc->time + $delta > time()) {
 					return json_decode($dbdoc->content);
 				}
@@ -487,11 +547,11 @@ if (!class_exists("MendeleyPlugin")) {
 			if ($this->settings['cache_collections'] === "no") return NULL;
 			$table_name = $wpdb->prefix . "mendeleycache";
 			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=2 AND mid=$cid");
-			if ($dbdoc) {
-			// check timestamp
-				$delta = 3600000;
-				if ($this->settings['cache_collections'] === "day") { $delta = 86400000; }
-				if ($this->settings['cache_collections'] === "week") { $delta = 604800000; }
+			if (!is_null($dbdoc)) {
+				// check timestamp
+				$delta = 3600;
+				if ($this->settings['cache_collections'] === "day") { $delta = 86400; }
+				if ($this->settings['cache_collections'] === "week") { $delta = 604800; }
 				if ($dbdoc->time + $delta > time()) {
 					return json_decode($dbdoc->content);
 				}
