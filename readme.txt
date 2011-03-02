@@ -16,10 +16,20 @@ Using the public API from Mendeley, meta-information on documents in personal, p
 
 The lists can be included in posts or pages using WordPress shortcodes:
 <pre>
-&#91;mendeley type="collection" id="xxx" groupby="xxx"&#93;
-&#91;mendeley type="shared" id="xxx" groupby="xxx"&#93;
-&#91;mendeley type="shared" id="xxx" groupby="xxx" filter="author=Michael Koch"&#93;
-- the attribute "groupby" is optional; possible values currently are: "year"
+&#91;mendeley type="collections" id="xxx" groupby="xxx"&#93;
+&#91;mendeley type="groups" id="xxx" groupby="xxx"&#93;
+&#91;mendeley type="groups" id="xxx" sortby="xxx" sortbyorder="xxx"&#93;
+&#91;mendeley type="documents" id="authored" groupby="year"&#93;
+&#91;mendeley type="documents" id="authored" filter="tag=perceptualorganization"&#93;
+&#91;mendeley type="documents" id="authored" sortby="authors" sortbyorder="asc" groupby="year" grouporder="desc"%#93;
+&#91;mendeley type="sharedcollections" id="xxx" groupby="xxx"&#93;
+&#91;mendeley type="sharedcollections" id="xxx" groupby="xxx" filter="author=Michael Koch"&#93;
+
+- the attribute "type" can be set to "collections", "sharedcollections"/"shared", "documents", "groups"
+- the attribute "groupby" is optional; possible values currently are: "authors", "year"
+- the attribute "sortby" is optional; possible values currently are: "authors", "year"
+- the attributes "sortbyorder" and "groupbyorder" can have the values "asc" and "desc"
+- sorting on the sort key is done before grouping on the group key if both are provided
 - possible attributes to filter for are: author, editor, title, year, tag, keyword, url, publication_outlet, pages, issue, volume, city, publisher, abstract
 </pre>
 
@@ -37,8 +47,43 @@ The entries are formatted the following way - so, the style can be tailored usin
 	   , &lt;span class="wpmeditors"&gt;$editors&lt;/span&gt;
 	   , &lt;span class="wpmpages"&gt;$pages&lt;/span&gt;
 	   , &lt;span class="wpmpublisher"&gt;$city: $publisher&lt;/span&gt;
-	   , &lt;span class="wpmurl"&gt;$url&lt;/span&gt;
+	   , &lt;span class="wpmurl"&gt;&lt;a target="_blank" href="$url"&gt;&lt;span class="wpmurl$urltxt"&gt;$urltxt&lt;&gt;/span&lt;/a&gt&lt;/span&gt;
 	&lt;/p&gt;
+</pre>
+- urltxt is per default "url" or "pdf", "ps", "zip" if this is the extension of the file referenced by the url
+
+By adding some lines in your style sheets, you can format the output according to your needs. One example:
+<pre>
+.wpmref {
+}
+
+.wpmauthors {
+color: #666666;
+}
+.wpmyear:after{
+content: ": ";
+}
+.wpmyear {
+color: #666666;
+}
+.wpmtitle:before{
+content: "\"";
+}
+.wpmtitle:after{
+content: "\"";
+}
+
+.wpmurlpdf:before {
+content: url("/image/pdf.gif"=;
+}
+
+.wpmoutlet,
+.wpmvolume,
+.wpmissue,
+.wpmpages {
+font-style: italic;
+color: #336633;
+}
 </pre>
 
 The output in the widgets is formatted the following way:
@@ -51,9 +96,11 @@ The output in the widgets is formatted the following way:
 	&lt;/ul&gt;
 </pre>
 
+One of the next versions of the plugin will support a CSL (citation style language) based formatting.
+
 You can use the plugin in non widgetized themes, just try
 <pre>
-echo $mendeleyPlugin->formatSharedCollection(763, 10, array ('author' => 'Michael Koch'));
+echo $mendeleyPlugin->formatWidget("groups", 763, 10, array ('author' => 'Michael Koch'));
 </pre>
 
 For using the plugin you have to obtain an API key from Mendeley,
@@ -68,6 +115,8 @@ and authorize the API. To do so the following steps have to be taken:
 <li> then you are redirected to the Mendeley web site to authorize the request, and redirected back to the blog
 <li> now you can use shortcodes in your pages and blogs
 </ol> 
+
+Thanks for major contributions to the code base to: Rhodri Cusack (Cambridge)
 
 == Installation ==
 
@@ -86,6 +135,11 @@ and authorize the API. To do so the following steps have to be taken:
 == Screenshots ==
 
 == Change log ==
+
+= 0.6 =
+* added support for Mendeley "groups" and Mendeley "documents" in addition to "collections" and "sharedcollections"
+* added support for sorting without grouping and sorting within groups
+* combined different widgets to one and added support for "groups" and "documents"
 
 = 0.5.4 =
 * added support to filter by editor, tag and keyword in shortcode option
