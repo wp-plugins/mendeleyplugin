@@ -74,7 +74,7 @@ content: "\"";
 }
 
 .wpmurlpdf:before {
-content: url("/image/pdf.gif"=;
+content: url("/image/pdf.gif");
 }
 
 .wpmoutlet,
