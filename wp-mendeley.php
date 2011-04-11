@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.6
+Version: 0.6.1
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -13,7 +13,7 @@ Description: This plugin offers the possibility to load lists of document refere
 /* 
 The MIT License
 
-Copyright (c) 2010 Michael Koch (email: michael.koch@acm.org)
+Copyright (c) 2010-2011 Michael Koch (email: michael.koch@acm.org)
  
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@ define( 'ACCESS_TOKEN_ENDPOINT', 'http://www.mendeley.com/oauth/access_token/' )
 define( 'AUTHORIZE_ENDPOINT', 'http://www.mendeley.com/oauth/authorize/' );
 define( 'MENDELEY_OAPI_URL', 'http://www.mendeley.com/oapi/' );
 
-define( 'PLUGIN_VERSION' , '0.6' );
+define( 'PLUGIN_VERSION' , '0.6.1' );
 define( 'PLUGIN_DB_VERSION', 1 );
 
 // JSON services for PHP4
@@ -123,6 +123,11 @@ if (!class_exists("MendeleyPlugin")) {
 			if (empty($sortorder)) {
 				$sortorder = "asc";
 			}
+			if (empty($groupby)) {
+				if (empty($sortby)) {
+					$sortby = "year";
+				}
+			}
 			$filter = $attrs['filter'];
 			$filterattr = NULL;
 			$filterval = NULL;
@@ -138,6 +143,9 @@ if (!class_exists("MendeleyPlugin")) {
 				}
 			}
 			$result = "";
+			if ($this->settings['debug'] === 'true') {
+				$result .= "<p>Mendeley Plugin: groupby = $groupby, sortby = $sortby, sortorder = $sortorder, filter = $filter</p>";
+			}
 			// type can be collection, sharedcollection, documents, group
 			$res = $this->getItemsByType($type, $id);
 			// process the data
@@ -305,11 +313,12 @@ if (!class_exists("MendeleyPlugin")) {
 			$grpvalues = array();
 			for($i=0; $i <= sizeof($docarr); $i++) {
 				$doc = $docarr[$i];
-				$grpval = $doc->$groupby;
-				
-				// If array (like authors, take the first one)
-				if (is_array($grpval)) {
-					$grpval=$grpval[0];
+				if (isset($doc->$groupby)) {
+					$grpval = $doc->$groupby;
+					// If array (like authors, take the first one)
+					if (is_array($grpval)) {
+						$grpval=$grpval[0];
+					}
 				}
 				if (isset($grpval)) {
 					$grpvalues[$grpval][] = $doc;
@@ -464,7 +473,7 @@ if (!class_exists("MendeleyPlugin")) {
 			if ("$docid" === "") return NULL;
 			if ($this->settings['cache_docs'] === "no") return NULL;
 			$table_name = $wpdb->prefix . "mendeleycache";
-			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=0 AND mid=$docid");
+			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=0 AND mid='$docid'");
 			if ($dbdoc) {
 				// check timestamp
 				$delta = 3600;
@@ -481,7 +490,7 @@ if (!class_exists("MendeleyPlugin")) {
 			if ("$cid" === "") return NULL;
 			if ($this->settings['cache_collections'] === "no") return NULL;
 			$table_name = $wpdb->prefix . "mendeleycache";
-			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=1 AND mid=$cid");
+			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=1 AND mid='$cid'");
 			if ($dbdoc) {
 				// check timestamp
 				$delta = 3600;
@@ -497,22 +506,22 @@ if (!class_exists("MendeleyPlugin")) {
 		function updateDocumentInCache($docid, $doc) {
 			global $wpdb;
 			$table_name = $wpdb->prefix . "mendeleycache";
-			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=0 AND mid=$docid");
+			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=0 AND mid='$docid'");
 			if ($dbdoc) {
 				$wpdb->update($table_name, array('time' => time(), 'content' => json_encode($doc)), array( 'type' => '0', 'mid' => "$docid"));
 				return;
 			}
-			$wpdb->insert($table_name, array( 'type' => '0', 'time' => time(), 'mid' => strval($docid), 'content' => json_encode($doc)));
+			$wpdb->insert($table_name, array( 'type' => '0', 'time' => time(), 'mid' => "$docid", 'content' => json_encode($doc)));
 		}
 		function updateCollectionInCache($cid, $doc) {
 			global $wpdb;
 			$table_name = $wpdb->prefix . "mendeleycache";
-			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=1 AND mid=$cid");
+			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=1 AND mid='$cid'");
 			if ($dbdoc) {
 				$wpdb->update($table_name, array('time' => time(), 'content' => json_encode($doc)), array( 'type' => '1', 'mid' => "$cid"));
 				return;
 			}
-			$wpdb->insert($table_name, array( 'type' => '1', 'time' => time(), 'mid' => strval($cid), 'content' => json_encode($doc)));
+			$wpdb->insert($table_name, array( 'type' => '1', 'time' => time(), 'mid' => "$cid", 'content' => json_encode($doc)));
 		}
 
 		function getOptions() {
@@ -639,16 +648,17 @@ if (!class_exists("MendeleyPlugin")) {
 <form method="post" action="<?php echo $_SERVER["REQUEST_URI"]; ?>">
 <h2>Mendeley Plugin</h2>
 
-This plugin offers the possibility to load lists of document references from Mendeley (shared) collections, and display them in WordPress posts or pages.
+This plugin offers the possibility to load lists of document references from Mendeley (shared) collections or groups, and display them in WordPress posts or pages.
 
 The lists can be included in posts or pages using WordPress shortcodes:
 
-<ul>
-<li>- [mendeley type="collections" id="xxx" groupby=""], groupby=year,authors
+<p><ul>
+<li>- [mendeley type="collections" id="xxx" groupby=""], groupby=year,authors; sortby; sortorder
+<li>- [mendeley type="shared" id="763" sortby="year" sortorder="desc"]
 <li>- [mendeley type="groups" id="xxx" groupby="" filter=""], filter=ATTRNAME=AVALUE, e.g. author=Michael Koch
 <li>- [mendeley type="documents" id="authored" groupby="year"]
-<li>...
-</ul>
+<li>- ...
+</ul></p>
 
 <h3>Settings</h3>
 
@@ -683,7 +693,7 @@ Cache collection requests
 
 <h3>Mendeley Collection IDs</h3>
 
-<p>Currently, the plugin asks the user to specify the ids of Mendeley (shared) collections to display the documents in the collection. Pressing the button bellow will request and print the list of (shared) collections with the corresponding ids from the user account that authorized the access key to look up the ids you need.
+<p>Currently, the plugin asks the user to specify the ids of Mendeley (shared) collections or groups to display the documents in the collection. Pressing the button bellow will request and print the list of (shared) collections and groups with the corresponding ids from the user account that authorized the access key to look up the ids you need.
 
 <?php
 			// check if we shall display (shared) collection information
