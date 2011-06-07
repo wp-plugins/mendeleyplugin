@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.6.1
+Version: 0.6.2
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -43,7 +43,7 @@ define( 'ACCESS_TOKEN_ENDPOINT', 'http://www.mendeley.com/oauth/access_token/' )
 define( 'AUTHORIZE_ENDPOINT', 'http://www.mendeley.com/oauth/authorize/' );
 define( 'MENDELEY_OAPI_URL', 'http://www.mendeley.com/oapi/' );
 
-define( 'PLUGIN_VERSION' , '0.6.1' );
+define( 'PLUGIN_VERSION' , '0.6.2' );
 define( 'PLUGIN_DB_VERSION', 1 );
 
 // JSON services for PHP4
@@ -102,15 +102,19 @@ if (!class_exists("MendeleyPlugin")) {
 			return $this->formatCollection($attrs);
 		}
 		
-		// format a set of references (collection, sharedcollection, group, documents)
+		// format a set of references (folders, groups, documents)
 		function formatCollection($attrs = NULL, $maxdocs = 0, $style="standard") {
 			$type = $attrs['type'];
-			if (empty($type)) { $type = "collections"; }
-			if (strlen($type)<1) { $type = "collections"; }
-			if ($type === "shared") { $type = "sharedcollections"; } // for upwards compatibility
-			// correct wrong singular forms ...
-			if ($type === "sharedcollection") { $type = "sharedcollections"; }
-			if ($type === "collection") { $type = "collections"; }
+			if (empty($type)) { $type = "folders"; }
+			if (strlen($type)<1) { $type = "folders"; }
+			// for upwards compatibility
+			if ($type === "shared") { $type = "groups"; } 
+			if ($type === "sharedcollections") { $type = "groups"; }
+			if ($type === "collections") { $type = "folders"; }
+			if ($type === "sharedcollection") { $type = "groups"; }
+			if ($type === "collection") { $type = "folders"; }
+			// map singular cases to plural
+			if ($type === "folder") { $type = "folders"; }
 			if ($type === "group") { $type = "groups"; }
 			$id = $attrs['id'];
 			$groupby = $attrs['groupby'];
@@ -146,7 +150,7 @@ if (!class_exists("MendeleyPlugin")) {
 			if ($this->settings['debug'] === 'true') {
 				$result .= "<p>Mendeley Plugin: groupby = $groupby, sortby = $sortby, sortorder = $sortorder, filter = $filter</p>";
 			}
-			// type can be collection, sharedcollection, documents, group
+			// type can be folders, groups, documents
 			$res = $this->getItemsByType($type, $id);
 			// process the data
 			$docarr = $this->loadDocs($res);
@@ -244,7 +248,7 @@ if (!class_exists("MendeleyPlugin")) {
 		}		
 
 		
-		// One function handles documents groups collections sharedcollections		
+		// One function handles documents, groups, folders, ...
 		/* get the ids of all documents in a Mendeley collection
 		   and return them in an array */
 		function getItemsByType($type,$id) {
@@ -276,22 +280,27 @@ if (!class_exists("MendeleyPlugin")) {
 		}
 		/* get the ids/names of all groups for the current user */
 		function getGroups() {
-			$url = MENDELEY_OAPI_URL . "library/groups/?items=1000";
+			$url = MENDELEY_OAPI_URL . "library/groups/?items=1500";
 			$result = $this->sendAuthorizedRequest($url);
 			return $result;
 		}
-		/* get the ids/names of all collections for the current user */
-		function getCollections() {
-			$url = MENDELEY_OAPI_URL . "library/collections/?items=1000";
-			$result = $this->sendAuthorizedRequest($url);
-			return $result;
-		}
-		/* get the ids/names of all shared collections for the current user */ 
 		function getSharedCollections() {
-			$url = MENDELEY_OAPI_URL . "library/sharedcollections/?items=1000";
+			$url = MENDELEY_OAPI_URL . "library/groups/?items=1500";
 			$result = $this->sendAuthorizedRequest($url);
 			return $result;
 		}
+		/* get the ids/names of all folders for the current user */
+		function getFolders() {
+			$url = MENDELEY_OAPI_URL . "library/folders/?items=1500";
+			$result = $this->sendAuthorizedRequest($url);
+			return $result;
+		}
+		function getCollections() {
+			$url = MENDELEY_OAPI_URL . "library/folders/?items=1500";
+			$result = $this->sendAuthorizedRequest($url);
+			return $result;
+		}
+
 		/* get the meta information (array) for all document ids in
 		   the array given as an input parameter */
 		function loadDocs($docidarr, $count=0) {
@@ -443,7 +452,7 @@ if (!class_exists("MendeleyPlugin")) {
 
 		/* create database tables for the caching functionality */
 		/* database fields:
-		     type = 0 (document), 1 (collection), 2 (shared collection)
+		     type = 0 (document), 1 (folder), 2 (group)
 		     mid = Mendeley id as string
 		     time = timestamp
 		*/
@@ -485,7 +494,7 @@ if (!class_exists("MendeleyPlugin")) {
 			}
 			return NULL;
 		}
-		function getCollectionFromCache($cid) {
+		function getFolderFromCache($cid) {
 			global $wpdb;
 			if ("$cid" === "") return NULL;
 			if ($this->settings['cache_collections'] === "no") return NULL;
@@ -502,6 +511,9 @@ if (!class_exists("MendeleyPlugin")) {
 			}
 			return NULL;
 		}
+		function getCollectionFromCache($cid) {
+			return $this->getFolderFromCache($cid);
+		}
 		/* add data to database */
 		function updateDocumentInCache($docid, $doc) {
 			global $wpdb;
@@ -513,7 +525,7 @@ if (!class_exists("MendeleyPlugin")) {
 			}
 			$wpdb->insert($table_name, array( 'type' => '0', 'time' => time(), 'mid' => "$docid", 'content' => json_encode($doc)));
 		}
-		function updateCollectionInCache($cid, $doc) {
+		function updateFolderInCache($cid, $doc) {
 			global $wpdb;
 			$table_name = $wpdb->prefix . "mendeleycache";
 			$dbdoc = $wpdb->get_row("SELECT * FROM $table_name WHERE type=1 AND mid='$cid'");
@@ -522,6 +534,9 @@ if (!class_exists("MendeleyPlugin")) {
 				return;
 			}
 			$wpdb->insert($table_name, array( 'type' => '1', 'time' => time(), 'mid' => "$cid", 'content' => json_encode($doc)));
+		}
+		function updateCollectionInCache($cid, $doc) {
+			return $this->updateFolderInCache($cid, $doc);
 		}
 
 		function getOptions() {
@@ -547,8 +562,8 @@ if (!class_exists("MendeleyPlugin")) {
 			update_option($this->adminOptionsName, $this->settings);
 			// initialize some variables
 			$consumer_key = $this->settings['consumer_key'];
-            		$consumer_secret = $this->settings['consumer_secret'];
-            		$this->consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
+            $consumer_secret = $this->settings['consumer_secret'];
+            $this->consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
 			$this->sign_method = new OAuthSignatureMethod_HMAC_SHA1();
 			$acc_token = $this->settings['access_token'];
 			$acc_token_secret = $this->settings['access_token_secret'];
@@ -653,8 +668,8 @@ This plugin offers the possibility to load lists of document references from Men
 The lists can be included in posts or pages using WordPress shortcodes:
 
 <p><ul>
-<li>- [mendeley type="collections" id="xxx" groupby=""], groupby=year,authors; sortby; sortorder
-<li>- [mendeley type="shared" id="763" sortby="year" sortorder="desc"]
+<li>- [mendeley type="folders" id="xxx" groupby=""], groupby=year,authors; sortby; sortorder
+<li>- [mendeley type="groups" id="763" sortby="year" sortorder="desc"]
 <li>- [mendeley type="groups" id="xxx" groupby="" filter=""], filter=ATTRNAME=AVALUE, e.g. author=Michael Koch
 <li>- [mendeley type="documents" id="authored" groupby="year"]
 <li>- ...
@@ -669,7 +684,7 @@ The lists can be included in posts or pages using WordPress shortcodes:
 <h4>Caching</h4>
 
 <p>
-Cache collection requests
+Cache folder/group requests
     <select name="cacheCollections" size="1">
       <option value="no" id="no" <?php if ($this->settings['cache_collections'] === "no") { echo(' selected="selected"'); }?>>no caching</option>
       <option value="week" id="week" <?php if ($this->settings['cache_collections'] === "week") { echo(' selected="selected"'); }?>>refresh weekly</option>
@@ -693,10 +708,10 @@ Cache collection requests
 
 <h3>Mendeley Collection IDs</h3>
 
-<p>Currently, the plugin asks the user to specify the ids of Mendeley (shared) collections or groups to display the documents in the collection. Pressing the button bellow will request and print the list of (shared) collections and groups with the corresponding ids from the user account that authorized the access key to look up the ids you need.
+<p>Currently, the plugin asks the user to specify the ids of Mendeley folders or groups to display the documents in the collection. Pressing the button bellow will request and print the list of folders and groups with the corresponding ids from the user account that authorized the access key to look up the ids you need.
 
 <?php
-			// check if we shall display (shared) collection information
+			// check if we shall display folder/group information
 			if (isset($_POST['request_mendeleyIds'])) {
 				$result = $this->getGroups();
 				echo("<h4>Groups</h4><ul>");
@@ -707,17 +722,8 @@ Cache collection requests
 					}
 				}
 				echo "</ul>";
-				$result = $this->getCollections();
-				echo "<h4>Collections</h4><ul>";
-				if (is_array($result)) {
-					for($i = 0; $i < sizeof($result); ++$i) {
-						$c = $result[$i];
-						echo '<li>' . $c->name . ', ' . $c->id;
-					}
-				}
-				echo "</ul>";
-				$result = $this->getSharedCollections();
-				echo("<h4>Shared Collections</h4><ul>");
+				$result = $this->getFolders();
+				echo "<h4>Folders</h4><ul>";
 				if (is_array($result)) {
 					for($i = 0; $i < sizeof($result); ++$i) {
 						$c = $result[$i];
@@ -728,13 +734,13 @@ Cache collection requests
 			}
 ?>
 <div class="submit">
-<input type="submit" name="request_mendeleyIds" value="Request (Shared) Collection Ids">
+<input type="submit" name="request_mendeleyIds" value="Request Collection Ids">
 </div>
 
 <h3>API Keys</h3>
 
 <p>The Mendeley Plugin uses the <a href="http://www.mendeley.com/oapi/methods/">Mendeley OpenAPI</a> to access
-the information from Mendeley Groups and (Shared)Collections. For using this API you first need to request a Consumer Key
+the information from Mendeley Groups and Folders. For using this API you first need to request a Consumer Key
 and Consumer Secret from Mendeley. These values have to be entered in the following two field. To request the key
 and the secret go to <a href="http://dev.mendeley.com/">http://dev.mendeley.com/</a> and register a new application.</p>
 
@@ -743,7 +749,7 @@ and the secret go to <a href="http://dev.mendeley.com/">http://dev.mendeley.com/
 <p>Mendeley API Consumer Secret<br/>
 <input type="text" name="consumerSecret" value="<?php echo $this->settings['consumer_secret']; ?>" size="60"></input></p>
 
-<p>Since Groups, Collections and SharedCollections are user-specific, the plugin needs to be authorized to access this 
+<p>Since Groups and Folders are user-specific, the plugin needs to be authorized to access this 
 information in the name of a particular user. The Mendeley API uses the OAuth protocol for doing this. 
 When you press the button bellow, the plugin requests authorization from Mendeley. Therefore, you will be asked by
 Mendeley to log in and to authorize the request from the login. As a result an Access Token will be generated
@@ -827,7 +833,7 @@ class MendeleyCollectionWidget extends WP_Widget {
     function widget($args, $instance) {		
         extract( $args );
         $title = apply_filters('widget_title', $instance['title']);
-        // collectiony type (collection, sharedcollection, group)
+        // collectiony type (folder, group)
         $ctype = apply_filters('widget_ctype', $instance['ctype']);
         // collection id
         $cid = apply_filters('widget_cid', $instance['cid']);
@@ -873,8 +879,8 @@ class MendeleyCollectionWidget extends WP_Widget {
         $filterval = esc_attr($instance['filterval']);
         ?>
         <p><label for="<?php echo $this->get_field_id('title'); ?>"><?php _e('Title:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name('title'); ?>" type="text" value="<?php echo $title; ?>" /></label></p>
-        <p><label for="<?php echo $this->get_field_id('ctype'); ?>"><?php _e('Collection Type:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('ctype'); ?>" name="<?php echo $this->get_field_name('ctype'); ?>" type="text" value="<?php echo $ctype; ?>" /></label> (collection, sharedcollection, group, documents)</p>
-        <p><label for="<?php echo $this->get_field_id('cid'); ?>"><?php _e('Collection Id:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('cid'); ?>" name="<?php echo $this->get_field_name('cid'); ?>" type="text" value="<?php echo $cid; ?>" /></label></p>
+        <p><label for="<?php echo $this->get_field_id('ctype'); ?>"><?php _e('Collection Type:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('ctype'); ?>" name="<?php echo $this->get_field_name('ctype'); ?>" type="text" value="<?php echo $ctype; ?>" /></label> (folder, group, documents)</p>
+        <p><label for="<?php echo $this->get_field_id('cid'); ?>"><?php _e('Group/Folder Id:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('cid'); ?>" name="<?php echo $this->get_field_name('cid'); ?>" type="text" value="<?php echo $cid; ?>" /></label></p>
  		<p><label for="<?php echo $this->get_field_id('count'); ?>"><?php _e('Number of docs to display:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('count'); ?>" name="<?php echo $this->get_field_name('count'); ?>" type="text" value="<?php echo $count; ?>" /></label></p>
  		<p><label for="<?php echo $this->get_field_id('filterattr'); ?>"><?php _e('Attribute name to filter for:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('filterattr'); ?>" name="<?php echo $this->get_field_name('filterattr'); ?>" type="text" value="<?php echo $filterattr; ?>" /></label></p>
  		<p><label for="<?php echo $this->get_field_id('filterval'); ?>"><?php _e('Attribute value:'); ?> <input class="widefat" id="<?php echo $this->get_field_id('filterval'); ?>" name="<?php echo $this->get_field_name('filterval'); ?>" type="text" value="<?php echo $filterval; ?>" /></label></p>

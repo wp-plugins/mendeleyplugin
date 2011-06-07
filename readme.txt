@@ -16,16 +16,16 @@ Using the public API from Mendeley, meta-information on documents in personal, p
 
 The lists can be included in posts or pages using WordPress shortcodes:
 <pre>
-&#91;mendeley type="collections" id="xxx" groupby="xxx"&#93;
+&#91;mendeley type="folders" id="xxx" groupby="xxx"&#93;
 &#91;mendeley type="groups" id="xxx" groupby="xxx"&#93;
 &#91;mendeley type="groups" id="xxx" sortby="xxx" sortbyorder="xxx"&#93;
+&#91;mendeley type="groups" id="xxx" groupby="xxx"&#93;
+&#91;mendeley type="groups" id="xxx" groupby="xxx" filter="author=Michael Koch"&#93;
 &#91;mendeley type="documents" id="authored" groupby="year"&#93;
 &#91;mendeley type="documents" id="authored" filter="tag=perceptualorganization"&#93;
 &#91;mendeley type="documents" id="authored" sortby="authors" sortbyorder="asc" groupby="year" grouporder="desc"%#93;
-&#91;mendeley type="sharedcollections" id="xxx" groupby="xxx"&#93;
-&#91;mendeley type="sharedcollections" id="xxx" groupby="xxx" filter="author=Michael Koch"&#93;
 
-- the attribute "type" can be set to "collections", "sharedcollections"/"shared", "documents", "groups"
+- the attribute "type" can be set to "folders", "groups", "documents"
 - the attribute "groupby" is optional; possible values currently are: "authors", "year"
 - the attribute "sortby" is optional; possible values currently are: "authors", "year"
 - the attributes "sortbyorder" and "groupbyorder" can have the values "asc" and "desc"
@@ -128,6 +128,8 @@ Thanks for major contributions to the code base to: Rhodri Cusack (Cambridge)
 
 <p>Please make sure that caching is switched on when accessing shared collections! There is currently an access rate limit of 150 requests per hour - and since we need one request for every document (for retrieving the details) this limit is reached quickly.</p>
 
+<p>The plugin assumes that curl support is available in your PHP engine. If you see error messages like "Call to undefined function curl_init()" most likely curl support is not enabled. You can check by creating a .php file with a phpinfo(); command in it. Browse to this and search/look for curl on the resulting page. If support is enabled, there will be a listing for it.</p>
+
 <p>There are some reported problems with other plugins that are using the OAuth PHP library like tweetblender: If the other plugin does not check if the library is already loaded (as ours does), initializing the other plugins after wp_mendeley will result in an error message. In this case deactivate the other plugin.</p>
 
 == Upgrade Notice ==
@@ -141,6 +143,9 @@ No FAQ now.
 == Screenshots ==
 
 == Change log ==
+
+= 0.6.2 =
+* adapted to Mendeley API changes: map "collections" and "sharedcollections" methods to "folders" and "groups"
 
 = 0.6.1 =
 * fixed bug in caching (which prevented the cache from updating)
