@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.6.2b
+Version: 0.6.3
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -176,42 +176,50 @@ if (!class_exists("MendeleyPlugin")) {
 					$filtertrue = 0;
 					if (strcmp($filterattr, 'author')==0) {
 						$author_arr = $doc->authors;
-                        			for($i = 0; $i < sizeof($author_arr); ++$i) {
-                        				if (stristr($author_arr[$i], $filterval) === FALSE) {
-                        					continue;
-                            				} else {
-                            					$filtertrue = 1;
-                            					break;
-                            				}
-                        			}
+						if (is_array($author_arr)) {
+                        				for($i = 0; $i < sizeof($author_arr); ++$i) {
+                        					if (stristr($author_arr[$i], $filterval) === FALSE) {
+                        						continue;
+                            					} else {
+                            						$filtertrue = 1;
+                            						break;
+                            					}
+                        				}
+						}
 					} else if (strcmp($filterattr, 'editor')==0) {
                                                	$editor_arr = $doc->editors;
-                                               	for($i = 0; $i < sizeof($editor_arr); ++$i) {
-                                               		if (stristr($editor_arr[$i], $filterval) === FALSE) {
-                                               			continue;
-                                               		} else {
-                                               			$filtertrue = 1;
-                                               			break;
-                                               		}
+						if (is_array($editor_arr)) {
+                                               		for($i = 0; $i < sizeof($editor_arr); ++$i) {
+                                               			if (stristr($editor_arr[$i], $filterval) === FALSE) {
+                                               				continue;
+                                               			} else {
+                                               				$filtertrue = 1;
+                                               				break;
+                                               			}
+							}
                                                	}
 					} else if (strcmp($filterattr, 'tag')==0) {
                                                	$tag_arr = $doc->tags;
-                                               	for($i = 0; $i < sizeof($tag_arr); ++$i) {
-                                               		if (stristr($tag_arr[$i], $filterval) === FALSE) {
-                                               			continue;
-                                               		} else {
-                                               			$filtertrue = 1;
-                                               			break;
+						if (is_array($tag_arr)) {
+                                               		for($i = 0; $i < sizeof($tag_arr); ++$i) {
+                                               			if (stristr($tag_arr[$i], $filterval) === FALSE) {
+                                               				continue;
+                                               			} else {
+                                               				$filtertrue = 1;
+                                               				break;
+								}
                                                		}
                                                	}
 					} else if (strcmp($filterattr, 'keyword')==0) {
                                                	$keyword_arr = $doc->keywords;
-                                               	for($i = 0; $i < sizeof($keyword_arr); ++$i) {
-                                               		if (stristr($keyword_arr[$i], $filterval) === FALSE) {
-                                               			continue;
-                                               		} else {
-                                               			$filtertrue = 1;
-                                               			break;
+						if (is_array($keyword_arr)) {
+                                               		for($i = 0; $i < sizeof($keyword_arr); ++$i) {
+                                               			if (stristr($keyword_arr[$i], $filterval) === FALSE) {
+                                               				continue;
+                                               			} else {
+                                               				$filtertrue = 1;
+                                               				break;
+								}
                                                		}
                                                	}
                                         } else {
@@ -373,13 +381,15 @@ if (!class_exists("MendeleyPlugin")) {
 		function formatDocument($doc) {
 			$author_arr = $doc->authors;
 			$authors = "";
-			for($i = 0; $i < sizeof($author_arr); ++$i) {
-				if ($i > 0) $authors = $authors.", ";
-				$authors = $authors.$author_arr[$i];
+			if (is_array($author_arr)) {
+				for($i = 0; $i < sizeof($author_arr); ++$i) {
+					if ($i > 0) $authors = $authors.", ";
+					$authors = $authors.$author_arr[$i];
+				}
 			}
 			$editor_arr = $doc->editors;
 			$editors = "";
-			if (isset($doc->editors)) {
+			if (is_array($editor_arr)) {
 				for($i = 0; $i < sizeof($editor_arr); ++$i) {
 					if ($i > 0) $editors = $editors.", ";
 					$editors = $editors.$editor_arr[$i];
