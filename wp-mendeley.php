@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.6.2
+Version: 0.6.2b
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/

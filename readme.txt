@@ -144,6 +144,9 @@ No FAQ now.
 
 == Change log ==
 
+= 0.6.2b =
+* minor bug fix (wrong object ids from Mendeley API)
+
 = 0.6.2 =
 * adapted to Mendeley API changes: map "collections" and "sharedcollections" methods to "folders" and "groups"
 
