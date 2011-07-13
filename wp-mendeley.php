@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.6.3
+Version: 0.6.4
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -41,7 +41,7 @@ if (!class_exists("OAuthConsumer")) {
 define( 'REQUEST_TOKEN_ENDPOINT', 'http://www.mendeley.com/oauth/request_token/' );
 define( 'ACCESS_TOKEN_ENDPOINT', 'http://www.mendeley.com/oauth/access_token/' );
 define( 'AUTHORIZE_ENDPOINT', 'http://www.mendeley.com/oauth/authorize/' );
-define( 'MENDELEY_OAPI_URL', 'http://www.mendeley.com/oapi/' );
+define( 'MENDELEY_OAPI_URL', 'http://api.mendeley.com/oapi/' );
 
 define( 'PLUGIN_VERSION' , '0.6.2' );
 define( 'PLUGIN_DB_VERSION', 1 );
@@ -153,7 +153,7 @@ if (!class_exists("MendeleyPlugin")) {
 			// type can be folders, groups, documents
 			$res = $this->getItemsByType($type, $id);
 			// process the data
-			$docarr = $this->loadDocs($res);
+			$docarr = $this->loadDocs($res, $type, $id);
 			if (isset($sortby)) {
 				$docarr = $this->groupDocs($docarr, $sortby, $sortorder);
 			}
@@ -272,16 +272,22 @@ if (!class_exists("MendeleyPlugin")) {
 			$result = $this->sendAuthorizedRequest($url);
 			$this->updateCollectionInCache($cacheid, $result);
 			$doc_ids = $result->document_ids;
+			if (is_null($result->document_ids)) {
+				$doc_ids = array(0 => $result->id);
+			}
 			return $doc_ids;
 		}
 		
 		/* get all attributes (array) for a given document */
-		function getDocument($docid) {
+		function getDocument($docid, $fromtype, $fromid) {
 			if (is_null($docid)) return NULL;
 			// check cache
 			$result = $this->getDocumentFromCache($docid);
 			if (!is_null($result)) return $result;
 			$url = MENDELEY_OAPI_URL . "library/documents/$docid/";
+			if ($fromtype === "groups") {
+				$url = MENDELEY_OAPI_URL . "library/groups/$fromid/$docid/";
+			}
 			$result = $this->sendAuthorizedRequest($url);
 			$this->updateDocumentInCache($docid, $result);
 			return $result;
@@ -311,12 +317,12 @@ if (!class_exists("MendeleyPlugin")) {
 
 		/* get the meta information (array) for all document ids in
 		   the array given as an input parameter */
-		function loadDocs($docidarr, $count=0) {
+		function loadDocs($docidarr, $fromtype, $fromid, $count=0) {
 			$res = array();
 			if ($count == 0) { $count = sizeof($docidarr); }
-			for($i=0; $i <= $count; $i++) {
+			for($i=0; $i < $count; $i++) {
 				$docid = $docidarr[$i];
-				$doc = $this->getDocument($docid);
+				$doc = $this->getDocument($docid, $fromtype, $fromid);
 				$res[] = $doc;
 			}
 			return $res;
@@ -328,7 +334,7 @@ if (!class_exists("MendeleyPlugin")) {
 		   will be grouped according to the groupby parameter. */
 		function groupDocs($docarr, $groupby, $order) {
 			$grpvalues = array();
-			for($i=0; $i <= sizeof($docarr); $i++) {
+			for($i=0; $i < sizeof($docarr); $i++) {
 				$doc = $docarr[$i];
 				if (isset($doc->$groupby)) {
 					$grpval = $doc->$groupby;
@@ -682,6 +688,7 @@ The lists can be included in posts or pages using WordPress shortcodes:
 <li>- [mendeley type="groups" id="763" sortby="year" sortorder="desc"]
 <li>- [mendeley type="groups" id="xxx" groupby="" filter=""], filter=ATTRNAME=AVALUE, e.g. author=Michael Koch
 <li>- [mendeley type="documents" id="authored" groupby="year"]
+<li>- [mendeley type="documents" id="123456789"]
 <li>- ...
 </ul></p>
 

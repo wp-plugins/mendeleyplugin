@@ -115,8 +115,8 @@ and authorize the API. To do so the following steps have to be taken:
 <li> then you are redirected to the Mendeley web site to authorize the request, and redirected back to the blog
 <li> now you can use shortcodes in your pages and blogs
 </ol> 
-
-Thanks for major contributions to the code base to: Rhodri Cusack (Cambridge)
+ 
+Thanks for contributions to Rhodri Cusack and Matthias Budde.
 
 == Installation ==
 
@@ -143,6 +143,9 @@ No FAQ now.
 == Screenshots ==
 
 == Change log ==
+
+= 0.6.4 =
+* minor bug fixes (thanks to Matthias Budde for contributing)
 
 = 0.6.3 =
 * minor bug fix (saveguarded all access to arrays returned from API by is_array calls)
