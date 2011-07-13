@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.6.4
+Version: 0.6.5
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -444,10 +444,11 @@ if (!class_exists("MendeleyPlugin")) {
 					if (strpos($urlitem, "ncbi.nlm.nih.gov/pubmed", false)) { $atext = "pubmed"; }
 					// TBD: add support to use icons instead of text
 					// TBD: add support to further configure output
-					if (endsWith($doc->url, "pdf", false)) { $atext = "pdf"; }
-					if (endsWith($doc->url, "ps", false)) { $atext = "ps"; }
-					if (endsWith($doc->url, "zip", false)) { $atext = "zip"; }
-					if (startsWith($doc->url, "http://www.scribd.com", false)) { $atext = "scribd"; }
+					if (endsWith($urlitem, "pdf", false)) { $atext = "pdf"; }
+					if (endsWith($urlitem, "ps", false)) { $atext = "ps"; }
+					if (endsWith($urlitem, "zip", false)) { $atext = "zip"; }
+					if (startsWith($urlitem, "http://www.youtube", false)) { $atext = "watch on youtube"; }
+					if (startsWith($urlitem, "http://www.scribd.com", false)) { $atext = "scribd"; }
 					$tmps .= ', <span class="wpmurl"><a target="_blank" href="' . $urlitem . '"><span class="wpmurl' . $atext . '">' . $atext . '</span></a></span>';
 					$item += 1;
 				}

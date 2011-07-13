@@ -144,6 +144,9 @@ No FAQ now.
 
 == Change log ==
 
+= 0.6.5 =
+* minor bug fix (multiple URLs have been parsed using the same type)
+
 = 0.6.4 =
 * minor bug fixes (thanks to Matthias Budde for contributing)
 
