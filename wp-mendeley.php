@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.6.5
+Version: 0.6.6
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -340,7 +340,7 @@ if (!class_exists("MendeleyPlugin")) {
 					$grpval = $doc->$groupby;
 					// If array (like authors, take the first one)
 					if (is_array($grpval)) {
-						$grpval=$grpval[0];
+						$grpval=$grpval[0]->__toString();
 					}
 				}
 				if (isset($grpval)) {
@@ -389,16 +389,14 @@ if (!class_exists("MendeleyPlugin")) {
 			$authors = "";
 			if (is_array($author_arr)) {
 				for($i = 0; $i < sizeof($author_arr); ++$i) {
-					if ($i > 0) $authors = $authors.", ";
-					$authors = $authors.$author_arr[$i];
+					$authors = $this->comma_separated_names($author_arr);
 				}
 			}
 			$editor_arr = $doc->editors;
 			$editors = "";
 			if (is_array($editor_arr)) {
 				for($i = 0; $i < sizeof($editor_arr); ++$i) {
-					if ($i > 0) $editors = $editors.", ";
-					$editors = $editors.$editor_arr[$i];
+					$editors = $this->comma_separated_names($editor_arr);
 				}
 			}
 			if (strlen($authors)<1) {
@@ -588,6 +586,46 @@ if (!class_exists("MendeleyPlugin")) {
 			
 			return $this->settings;
 		}
+		
+		/**
+		 * Concatenates two strings with $concat_str in between, if $x is not empty
+		 * @param $concat_str - string, string which should be in between
+		 * @param $x - string, first string
+		 * @param $y - string, second string
+		 * @return the combined string
+		 */
+		function concatenate($concat_str, $x, $y) {
+			if (empty($x)) return $y;
+			return $x . $concat_str . $y;
+		}
+
+		/**
+		 * Concatenates two string with ', ' in between, if $x is not empty
+ 		 * @param $x - string, first string
+	 	 * @param $y - string, second string
+		 * @return the combined string
+		 * @uses array_concatenate($concat_str, $x, $y)
+		 */
+		function comma_concatenate($x, $y) {
+			return $this->concatenate(', ', $x , $y);
+		}
+
+		/**
+		 * Creates the names for specific object arrays
+		 * @param $nameObjectsArray - array, an array containing objects with the variables 'forename' and 'surname'
+		 * @return the concatenated names string
+		 */
+		function comma_separated_names($nameObjectsArray) {
+			foreach ($nameObjectsArray as &$singleNameObject) {
+ 				$singleNameObject = $singleNameObject->forename . ' ' . $singleNameObject->surname;
+			}
+			return array_reduce($nameObjectsArray, array(&$this, "comma_concatenate"));
+		}
+
+		
+		/**
+		 *
+		 */
 		function printAdminPage() {
 			$this->getOptions();
 			// check if any form data has been submitted and process it
@@ -972,5 +1010,5 @@ function endsWith($string, $postfix, $caseSensitive = true) {
 	return strrpos($string, $postfix, 0) === $expectedPostition;
 }
 
-
+  
 ?>

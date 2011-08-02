@@ -144,6 +144,9 @@ No FAQ now.
 
 == Change log ==
 
+= 0.6.6 =
+* adapted author handling to new way (forename, surname)
+
 = 0.6.5 =
 * minor bug fix (multiple URLs have been parsed using the same type)
 
