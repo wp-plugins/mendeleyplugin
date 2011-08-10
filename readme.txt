@@ -138,11 +138,16 @@ To upgrade the plugin, just deactivate the plugin, overwrite the plugin director
 
 == Frequently Asked Questions ==
 
-No FAQ now.
+How can I contribute to the development of the plugin?
+
+The plugin is hosted on Google Code: http://code.google.com/p/wp-mendeley-plugin/ - You may check out the newest code from there - and ask for being added as a developer to the repository to upload bug fixes and other additions.
 
 == Screenshots ==
 
 == Change log ==
+
+= 0.6.7 =
+* some bug fixes / additional handling regarding the new author data format
 
 = 0.6.6 =
 * adapted author handling to new way (forename, surname)

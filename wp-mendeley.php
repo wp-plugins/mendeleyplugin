@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.6.6
+Version: 0.6.7
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -177,26 +177,18 @@ if (!class_exists("MendeleyPlugin")) {
 					if (strcmp($filterattr, 'author')==0) {
 						$author_arr = $doc->authors;
 						if (is_array($author_arr)) {
-                        				for($i = 0; $i < sizeof($author_arr); ++$i) {
-                        					if (stristr($author_arr[$i], $filterval) === FALSE) {
-                        						continue;
-                            					} else {
-                            						$filtertrue = 1;
-                            						break;
-                            					}
-                        				}
+							$tmps = $this->comma_separated_names($author_arr);
+                        				if (!(stristr($tmps, $filterval) === FALSE)) {
+                            					$filtertrue = 1;
+                            				}
 						}
 					} else if (strcmp($filterattr, 'editor')==0) {
                                                	$editor_arr = $doc->editors;
 						if (is_array($editor_arr)) {
-                                               		for($i = 0; $i < sizeof($editor_arr); ++$i) {
-                                               			if (stristr($editor_arr[$i], $filterval) === FALSE) {
-                                               				continue;
-                                               			} else {
-                                               				$filtertrue = 1;
-                                               				break;
-                                               			}
-							}
+							$tmps = $this->comma_separated_names($editor_arr);
+                        				if (!(stristr($tmps, $filterval) === FALSE)) {
+                            					$filtertrue = 1;
+                            				}
                                                	}
 					} else if (strcmp($filterattr, 'tag')==0) {
                                                	$tag_arr = $doc->tags;
