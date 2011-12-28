@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.6.7
+Version: 0.7
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -43,7 +43,7 @@ define( 'ACCESS_TOKEN_ENDPOINT', 'http://www.mendeley.com/oauth/access_token/' )
 define( 'AUTHORIZE_ENDPOINT', 'http://www.mendeley.com/oauth/authorize/' );
 define( 'MENDELEY_OAPI_URL', 'http://api.mendeley.com/oapi/' );
 
-define( 'PLUGIN_VERSION' , '0.6.2' );
+define( 'PLUGIN_VERSION' , '0.7' );
 define( 'PLUGIN_DB_VERSION', 1 );
 
 // JSON services for PHP4
@@ -146,6 +146,12 @@ if (!class_exists("MendeleyPlugin")) {
 					}
 				}
 			}
+			$maxtmp = $attrs['maxdocs'];
+			if (isset($maxtmp)) {
+				$maxdocs = intval($maxtmp);
+				if ($maxdocs < 0) { $maxdocs = 0; }
+			}
+
 			$result = "";
 			if ($this->settings['debug'] === 'true') {
 				$result .= "<p>Mendeley Plugin: groupby = $groupby, sortby = $sortby, sortorder = $sortorder, filter = $filter</p>";
@@ -171,55 +177,9 @@ if (!class_exists("MendeleyPlugin")) {
 				}
 			}
 			foreach($docarr as $doc) {
-				// check for filter
+				// check filter
 				if (!is_null($filterattr)) {
-					$filtertrue = 0;
-					if (strcmp($filterattr, 'author')==0) {
-						$author_arr = $doc->authors;
-						if (is_array($author_arr)) {
-							$tmps = $this->comma_separated_names($author_arr);
-                        				if (!(stristr($tmps, $filterval) === FALSE)) {
-                            					$filtertrue = 1;
-                            				}
-						}
-					} else if (strcmp($filterattr, 'editor')==0) {
-                                               	$editor_arr = $doc->editors;
-						if (is_array($editor_arr)) {
-							$tmps = $this->comma_separated_names($editor_arr);
-                        				if (!(stristr($tmps, $filterval) === FALSE)) {
-                            					$filtertrue = 1;
-                            				}
-                                               	}
-					} else if (strcmp($filterattr, 'tag')==0) {
-                                               	$tag_arr = $doc->tags;
-						if (is_array($tag_arr)) {
-                                               		for($i = 0; $i < sizeof($tag_arr); ++$i) {
-                                               			if (stristr($tag_arr[$i], $filterval) === FALSE) {
-                                               				continue;
-                                               			} else {
-                                               				$filtertrue = 1;
-                                               				break;
-								}
-                                               		}
-                                               	}
-					} else if (strcmp($filterattr, 'keyword')==0) {
-                                               	$keyword_arr = $doc->keywords;
-						if (is_array($keyword_arr)) {
-                                               		for($i = 0; $i < sizeof($keyword_arr); ++$i) {
-                                               			if (stristr($keyword_arr[$i], $filterval) === FALSE) {
-                                               				continue;
-                                               			} else {
-                                               				$filtertrue = 1;
-                                               				break;
-								}
-                                               		}
-                                               	}
-                                        } else {
-                                               	// other attributes
-                                               	if (strcmp($keyval, $doc->{$key})==0) {
-                                               		$filtertrue = 1;
-                                               	}
-                                        }
+					$filtertrue = $this->checkFilter($filterattr, $filterval, $doc);
 					if ($filtertrue == 0) { continue; }
 				}
 				// check if groupby-value changed
@@ -246,6 +206,52 @@ if (!class_exists("MendeleyPlugin")) {
 			}
 			return $result;
 		}		
+
+		/* check if a given document ($doc) matches the given filter ($filterattr, $filterval)
+		   return 1 if the check is true, 0 otherwise */
+		function checkFilter($filterattr, $filterval, $doc) {
+			if (strcmp($filterattr, 'author')==0) {
+				$author_arr = $doc->authors;
+				if (is_array($author_arr)) {
+					$tmps = $this->comma_separated_names($author_arr);
+                       			if (!(stristr($tmps, $filterval) === FALSE)) {
+                               			return 1;
+                       			}
+				}
+			} else if (strcmp($filterattr, 'editor')==0) {
+                               	$editor_arr = $doc->editors;
+				if (is_array($editor_arr)) {
+					$tmps = $this->comma_separated_names($editor_arr);
+                       			if (!(stristr($tmps, $filterval) === FALSE)) {
+                               			return 1;
+                       			}
+                               	}
+			} else if (strcmp($filterattr, 'tag')==0) {
+                               	$tag_arr = $doc->tags;
+				if (is_array($tag_arr)) {
+                               		for($i = 0; $i < sizeof($tag_arr); ++$i) {
+                               			if (!(stristr($tag_arr[$i], $filterval) === FALSE)) {
+                               				return 1;
+						}
+                               		}
+                               	}
+			} else if (strcmp($filterattr, 'keyword')==0) {
+                               	$keyword_arr = $doc->keywords;
+				if (is_array($keyword_arr)) {
+                               		for($i = 0; $i < sizeof($keyword_arr); ++$i) {
+                               			if (!(stristr($keyword_arr[$i], $filterval) === FALSE)) {
+                               				return 1;
+						}
+                               		}
+                               	}
+                        } else {
+                               	// other attributes
+                                if (strcmp($keyval, $doc->{$key})==0) {
+					return 1;
+                                }
+			}
+			return 0;
+		}
 
 		
 		// One function handles documents, groups, folders, ...
@@ -358,6 +364,7 @@ if (!class_exists("MendeleyPlugin")) {
 		
 		/* produce the output for one document */
 		/* the following attributes are available in the doc object
+			type (Book Section, Conference Proceedings, Journal Article, Report, Book, Encyclopedia Article, ...)
 			title
 			year
 			authors*
@@ -367,29 +374,30 @@ if (!class_exists("MendeleyPlugin")) {
 			identifiers* (issn,...)
 			url
 			discipline*
+			subdiscipline
 			publication_outlet
+			published_in
 			pages
 			issue
 			volume
 			city
 			publisher
 			abstract
-			// type: "Book Section", "Journal Article", "Generic", ...
+			id
+			mendeley_url
+			canonical_id
+			files
 		*/
 		function formatDocument($doc) {
 			$author_arr = $doc->authors;
 			$authors = "";
 			if (is_array($author_arr)) {
-				for($i = 0; $i < sizeof($author_arr); ++$i) {
-					$authors = $this->comma_separated_names($author_arr);
-				}
+				$authors = $this->comma_separated_names($author_arr);
 			}
 			$editor_arr = $doc->editors;
 			$editors = "";
 			if (is_array($editor_arr)) {
-				for($i = 0; $i < sizeof($editor_arr); ++$i) {
-					$editors = $this->comma_separated_names($editor_arr);
-				}
+				$editors = $this->comma_separated_names($editor_arr);
 			}
 			if (strlen($authors)<1) {
 				if (strlen($editors)>0) {
@@ -451,11 +459,80 @@ if (!class_exists("MendeleyPlugin")) {
 			if (isset($doc->url)) {
 				$tmps .= '<a href="' .  $doc->url . '">' . $doc->title . '</a>';
 			} else {
-				$tmps .= $doc->title;
+				$tmps .= '<a href="' . $doc->mendeley_url . '">' . $doc->title . '</a>';
 			}
 			$tmps .= '</span>';
 			return $tmps;
 		}
+
+		/**
+		 *
+		 */
+		function formatDocumentJSON($doc) {
+			$tmps = "{\n" .'"type" : "Publication"' . ",\n";
+			$tmps .= '"id" : "' . $doc->mendeley_url . '"' . ",\n";
+			$tmps .= '"pub-type": "' . addslashes($doc->type) . '"' . ",\n"; 
+			$tmps .= '"label" : "' . addslashes($doc->title) . '"' . ",\n";
+			if (isset($doc->publication_outlet)) {
+				$tmps .= '"booktitle" : "' . addslashes($doc->publication_outlet) . '"' . ",\n";
+			}
+			$tmps .= '"description": "' . addslashes($doc->abstract) . '"' . ",\n"; 
+
+			$author_arr = $doc->authors;
+			if (is_array($author_arr)) {
+				$tmps .= '"author" : [ ' . "\n";
+				for($i = 0; $i < sizeof($author_arr); ++$i) {
+					if ($i > 0) { $tmps .= ', '; }
+					$tmps .= '"' . addslashes($author_arr[$i]->forename) . ' ' . addslashes($author_arr[$i]->surname) . '"';
+				}
+				$tmps .= "\n],\n";
+			}
+			$editor_arr = $doc->editors;
+			if (is_array($editor_arr)) {
+				$tmps .= '"editor" : [ ' . "\n";
+				for($i = 0; $i < sizeof($editor_arr); ++$i) {
+					if ($i > 0) { $tmps .= ', '; }
+					$tmps .= '"' . addslashes($editor_arr[$i]->forename) . ' ' . addslashes($editor_arr[$i]->surname) . '"';
+				}
+				$tmps .= "\n],\n";
+			}
+			$tag_arr = $doc->tags;
+			if (is_array($tag_arr)) {
+				$tags = "";
+				for($i = 0; $i < sizeof($tag_arr); ++$i) {
+					if ($i > 0) { $tags .= ', '; }
+					$tags .= '"' . addslashes($tag_arr[$i]) . '"';
+				}
+				if (strlen($tags)>1) {
+					$tmps .= '"tags" : [ ' . "\n" . $tags . "\n],\n";
+				}
+			}
+			if (isset($doc->volume)) {
+				$tmps .= '"volume" : "' . $doc->volume . '"' . ",\n";
+			}
+			if (isset($doc->issue)) {
+				$tmps .= '"number" : "' . $doc->issue . '"' . ",\n";
+			}
+			if (isset($doc->pages)) {
+				$tmps .= '"pages" : "' . $doc->pages . '"' . ",\n";
+			}
+			/*
+			if (isset($doc->publisher)) {
+				if (isset($doc->city)) {
+					$tmps .= ', <span class="wpmpublisher">' . addslashes($doc->city) . ': ' . addslashes($doc->publisher) . '</span>';
+				} else {
+					$tmps .= ', <span class="wpmpublisher">' . addslashes($doc->publisher) . '</span>';
+				}
+			}
+			*/
+			if (isset($doc->url)) {
+				$tmps .= '"url" : "' . addslashes($doc->url) . '"' . ",\n";
+				// ...
+			}
+			$tmps .= '"year" : "' . $doc->year . '"' . "\n}\n";
+			return $tmps;
+		}
+
 
 		/* create database tables for the caching functionality */
 		/* database fields:
@@ -708,7 +785,7 @@ if (!class_exists("MendeleyPlugin")) {
 ?>
 <div class="wrap">
 <form method="post" action="<?php echo $_SERVER["REQUEST_URI"]; ?>">
-<h2>Mendeley Plugin</h2>
+<h1>Mendeley Plugin</h1>
 
 This plugin offers the possibility to load lists of document references from Mendeley (shared) collections or groups, and display them in WordPress posts or pages.
 
@@ -720,15 +797,11 @@ The lists can be included in posts or pages using WordPress shortcodes:
 <li>- [mendeley type="groups" id="xxx" groupby="" filter=""], filter=ATTRNAME=AVALUE, e.g. author=Michael Koch
 <li>- [mendeley type="documents" id="authored" groupby="year"]
 <li>- [mendeley type="documents" id="123456789"]
-<li>- ...
+<li>- ... (see readme.txt for more examples)
 </ul></p>
 
 <h3>Settings</h3>
 
-<h4>Debug</h4>
-
-<p><input type="radio" id="debug_yes" name="debug" value="true" <?php if ($this->settings['debug'] === "true") { _e(' checked="checked"', "MendeleyPlugin"); }?> /> Yes&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" id="debug_no" name="debug" value="false" <?php if ($this->settings['debug'] === "false") { _e(' checked="checked"', "MendeleyPlugin"); }?>/> No</p>
- 
 <h4>Caching</h4>
 
 <p>
@@ -750,6 +823,10 @@ Cache folder/group requests
 
 <p>To turn on caching is important, because Mendeley currently imposes a rate limit to requests to the service (currently 150 requests per hour - and we need one request for every single document details). See <a href="http://dev.mendeley.com/docs/rate-limiting">http://dev.mendeley.com/docs/rate-limiting</a> for more details on this restriction.</p>
 
+<h4>Debug</h4>
+
+<p><input type="radio" id="debug_yes" name="debug" value="true" <?php if ($this->settings['debug'] === "true") { _e(' checked="checked"', "MendeleyPlugin"); }?> /> Yes&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" id="debug_no" name="debug" value="false" <?php if ($this->settings['debug'] === "false") { _e(' checked="checked"', "MendeleyPlugin"); }?>/> No</p>
+ 
 <div class="submit">
 <input type="submit" name="update_mendeleyPlugin" value="Update Settings">
 </div>
@@ -834,6 +911,71 @@ and stored in the plugin.</p>
 			return $this->formatCollection($attrs, $maxdocs, "shortlist");
 		}
 
+		/**
+		 * should be called when index.php?mendeley_action=export-json
+		 * generate a JSON file for the documents in a collection (after filtering them)
+		 */
+		function generateJSONFile($id, $type="folders", $filter="") {
+			if (isset($filter)) {
+                                if (strlen($filter)>0) {
+                                        $filterarr = explode('=', $filter);
+                                        $filterattr = $filterarr[0];
+                                        if (isset($filterarr[1])) {
+                                                $filterval = $filterarr[1];
+                                        } else {
+                                                $filterattr = NULL;
+                                        }
+                                }
+                        }
+			// type can be folders, groups, documents
+                        $res = $this->getItemsByType($type, $id);
+                        // process the data
+                        $docarr = $this->loadDocs($res, $type, $id);
+
+			$result = "{\n";
+			$result .= '"types"' . " : {\n";
+			$result .= '"Bookmark"' . " : {\n" . '"pluralLabel" : "Bookmarks"' . "\n},\n";
+			$result .= '"Publication"' . " : {\n" . '"pluralLabel" : "Publications"' . "\n},\n";
+			$result .= '"Tag"' . " : {\n" . '"pluralLabel" : "Tags"' . "\n},\n";
+			$result .= '"User"' . " : {\n" . '"pluralLabel" : "Users"' . "\n}\n";
+			$result .= "},\n";
+			$result .= '"properties"' . " : {\n";
+			$result .= '"count"' . " : {\n" . '"valueType" : "number"' . "\n},\n";
+			$result .= '"date"' . " : {\n" . '"valueType" : "date"' . "\n},\n";
+			$result .= '"changeDate"' . " : {\n" . '"valueType" : "date"' . "\n},\n";
+			$result .= '"url"' . " : {\n" . '"valueType" : "url"' . "\n},\n";
+			$result .= '"id"' . " : {\n" . '"valueType" : "url"' . "\n},\n";
+			$result .= '"tags"' . " : {\n" . '"valueType" : "item"' . "\n},\n";
+			$result .= '"user"' . " : {\n" . '"valueType" : "item"' . "\n}\n";
+			$result .= "},\n";
+			$result .= '"items"' . " : [\n";
+
+			$isFirst = 1;
+			foreach($docarr as $doc) {
+				// check filter
+                                if (!is_null($filterattr)) {
+                                        $filtertrue = $this->checkFilter($filterattr, $filterval, $doc);
+                                        if ($filtertrue == 0) { continue; }
+                                }
+				if ($isFirst == 0) {
+					$result .= ",\n";
+				}
+				$isFirst = 0;
+                                $result .= $this->formatDocumentJSON($doc);
+                        }
+
+			$result .= "]\n}";
+
+			header("Pragma: public");
+			header("Cache-Control: no-cache, must-revalidate, post-check=0, pre-check=0");
+			header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
+			// header("Content-Type: application/force-download");
+			header("Content-Type: application/json;charset=utf-8");
+			//header("Content-Transfer-Encoding: 8bit");
+			header("Content-Length: ".strlen($result));
+			die($result);
+		}
+
 	}
 }
 
@@ -844,6 +986,9 @@ if (class_exists("MendeleyPlugin")) {
 			return 0;
 		}
 		return ($a->year < $b->year) ? -1 : 1;
+	}
+	if (!is_object($mendeleyPlugin)) {
+		echo "<p>MendelePlugin: failed to initialize plugin</p>";
 	}
 }
 if (!function_exists("wp_mendeley_add_pages")) {
@@ -858,6 +1003,22 @@ if (!function_exists("wp_mendeley_add_pages")) {
 	}
 }
 if (isset($mendeleyPlugin)) {
+	// check if we should create JSON file
+	// (which is the case if we have a GET request with parameter
+	// mendeley_action = export-json)
+	if (isset($_GET['mendeley_action']) && $_GET['mendeley_action'] === 'export-json') {
+		$id = $_GET['id'];
+		$type = $_GET['type'];
+		$filter = $_GET['filter'];
+		$mendeleyPlugin->generateJSONFile($id, $type, $filter);
+	}
+	if (startsWith($_SERVER['REQUEST_URI'],'/mendeleyplugin-export-json.js')) {
+		$id = $_GET['id'];
+		$type = $_GET['type'];
+		$filter = $_GET['filter'];
+		$mendeleyPlugin->generateJSONFile($id, $type, $filter);
+	}
+
 	// Actions
 	add_action('wp-mendeley/wp-mendeley.php', array(&$mendeleyPlugin,'init'));
 	add_action('admin_menu', 'wp_mendeley_add_pages');
