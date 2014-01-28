@@ -330,8 +330,6 @@ if (!class_exists("MendeleyPlugin")) {
                                		}
                                	}
                            } else {
-echo "$filterattr : ";
-// var_dump($doc);
                                	// other attributes
 				if (!isset($doc->{$filterattr})) {
 				   continue;
