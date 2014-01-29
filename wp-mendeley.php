@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.8.5
+Version: 0.8.6
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -10,7 +10,7 @@ License: http://www.opensource.org/licenses/mit-license.php
 Description: This plugin offers the possibility to load lists of document references from Mendeley (shared) collections, and display them in WordPress posts or pages.
 */
 
-define( 'PLUGIN_VERSION' , '0.8.5' );
+define( 'PLUGIN_VERSION' , '0.8.6' );
 define( 'PLUGIN_DB_VERSION', 2 );
 
 /* 
@@ -243,11 +243,13 @@ if (!class_exists("MendeleyPlugin")) {
 					$error_message = "";
 				}
 			}
+			$countfiltered = 0;
 			foreach($docarr as $doc) {
 				// check filter
 				if (!is_null($filter)) {
 					$filtertrue = $this->checkFilter($filter, $doc);
 					if ($filtertrue == 0) { continue; }
+					$countfiltered++;
 				}
 				// check if groupby-value changed
 				if (isset($groupby)) {
@@ -271,6 +273,9 @@ if (!class_exists("MendeleyPlugin")) {
 					$count++;  
 					if ($count > $maxdocs) break;
 				}	
+			}
+			if ($this->settings['debug'] === 'true') {
+				$result .= "<p>Mendeley Plugin: Filtered results count: " . $countfiltered . "</p>";
 			}
 			$this->updateOutputInCache($cacheid, $result);
 			return $result;
@@ -364,9 +369,9 @@ if (!class_exists("MendeleyPlugin")) {
 				$doc_ids = $result->document_ids;
 				return $doc_ids;
 			}
-			$url = MENDELEY_OAPI_URL . "library/$type/$id/";
+			$url = MENDELEY_OAPI_URL . "library/$type/$id/?page=0&items=10000";
 			if ($type === "own") { 
-				$url = MENDELEY_OAPI_URL . "library/documents/authored/";
+				$url = MENDELEY_OAPI_URL . "library/documents/authored/?page=0&items=10000";
 			}
 			$result = $this->sendAuthorizedRequest($url);
 			$this->updateCollectionInCache($cacheid, $result);
@@ -1440,7 +1445,7 @@ class MendeleyCollectionWidget extends WP_Widget {
 class MendeleyOwnWidget extends WP_Widget {
     /** constructor */
     function MendeleyOwnWidget() {
-        parent::WP_Widget(false, $name = 'Mendeley Collection');	
+        parent::WP_Widget(false, $name = 'Mendeley My Publications');	
     }
 
     /** @see WP_Widget::widget */
