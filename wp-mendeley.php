@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.8.6
+Version: 0.8.7
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -10,7 +10,7 @@ License: http://www.opensource.org/licenses/mit-license.php
 Description: This plugin offers the possibility to load lists of document references from Mendeley (shared) collections, and display them in WordPress posts or pages.
 */
 
-define( 'PLUGIN_VERSION' , '0.8.6' );
+define( 'PLUGIN_VERSION' , '0.8.7' );
 define( 'PLUGIN_DB_VERSION', 2 );
 
 /* 
@@ -251,7 +251,7 @@ if (!class_exists("MendeleyPlugin")) {
 					if ($filtertrue == 0) { continue; }
 					$countfiltered++;
 				}
-				// check if groupby-value changed
+				// check if groupby-value has changed
 				if (isset($groupby)) {
 					$groupbyval = $doc->$groupby;
 					if (!($groupbyval === $currentgroupbyval)) {
@@ -270,8 +270,12 @@ if (!class_exists("MendeleyPlugin")) {
 				}
 
 				if ($maxdocs > 0) {
-					$count++;  
-					if ($count > $maxdocs) break;
+					if ($countfiltered > $maxdocs) {
+					   if ($this->settings['debug'] === 'true') {
+					      $result .= "<p>Mendeley Plugin: aborting output because maximum number of documents ($maxdocs) reached</p>";
+					   }		      
+					   break;
+					}
 				}	
 			}
 			if ($this->settings['debug'] === 'true') {
@@ -300,23 +304,27 @@ if (!class_exists("MendeleyPlugin")) {
 			   } else {
 				continue;
 			   }
-			   if (strcmp($filterattr, 'author')==0) {
+			   switch ($filterattr) {
+			   case "author":
 				$author_arr = $doc->authors;
 				if (is_array($author_arr)) {
 					$tmps = $this->comma_separated_names($author_arr);
-                       			if (!(stristr($tmps, $filterval) === FALSE)) {
-                               			continue;
+                       			if (stristr($tmps, $filterval) === FALSE) {
+                               			return 0;
                        			}
 				}
- 			   } else if (strcmp($filterattr, 'editor')==0) {
+				break;
+			   case "editor":
                                	$editor_arr = $doc->editors;
 				if (is_array($editor_arr)) {
 					$tmps = $this->comma_separated_names($editor_arr);
-                       			if (!(stristr($tmps, $filterval) === FALSE)) {
-                               			continue;
+                       			if (stristr($tmps, $filterval) === FALSE) {
+                               			return 0;
                        			}
                                	}
-			   } else if (strcmp($filterattr, 'tag')==0) {
+				break;
+			   case "tag":
+			   case "tags":
                                	$tag_arr = $doc->tags;
 				if (is_array($tag_arr)) {
 				   	$ismatch = 0;
@@ -325,11 +333,13 @@ if (!class_exists("MendeleyPlugin")) {
                                				$ismatch = 1;
 						}
                                		}
-					if ($ismatch == 1) {
-					   continue;
+					if ($ismatch == 0) {
+					   return 0;
 					}
                                	}
-			   } else if (strcmp($filterattr, 'keyword')==0) {
+				break;
+			   case "keyword":
+			   case "keywords":
                                	$keyword_arr = $doc->keywords;
 				if (is_array($keyword_arr)) {
 				   	$ismatch = 0;
@@ -338,20 +348,20 @@ if (!class_exists("MendeleyPlugin")) {
                                				$ismatch = 1;
 						}
                                		}
-					if ($ismatch == 1) {
-					   continue;
+					if ($ismatch == 0) {
+					   return 0;
 					}
                                	}
-                           } else {
+				break;
+			   default:
                                	// other attributes
 				if (!isset($doc->{$filterattr})) {
 				   continue;
 				}
-                                if (strcmp($filterval, $doc->{$filterattr})==0) {
-					continue;
+                                if (!(strcmp($filterval, $doc->{$filterattr})==0)) {
+				   return 0;
                                 }
-			   }
-			   return 0;
+			   } // switch
 			} // foreach singlefilter
 			return 1;
 		}

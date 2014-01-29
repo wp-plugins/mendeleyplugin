@@ -236,6 +236,9 @@ The plugin is hosted on Google Code: http://code.google.com/p/wp-mendeley-plugin
 
 == Change log ==
 
+= 0.8.7 (29.01.2014)
+* refactoring of filtering code to deal with minor problems
+
 = 0.8.6 (29.01.2014)
 * corrected name of "My Publications" widget
 * again set maximum number of documents (to 10000) since omitting this value sometimes defaults to 10 ...
