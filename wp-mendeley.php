@@ -2,7 +2,7 @@
 /*
 Plugin Name: Mendeley Plugin
 Plugin URI: http://www.kooperationssysteme.de/produkte/wpmendeleyplugin/
-Version: 0.8.7
+Version: 0.8.8
 
 Author: Michael Koch
 Author URI: http://www.kooperationssysteme.de/personen/koch/
@@ -10,7 +10,7 @@ License: http://www.opensource.org/licenses/mit-license.php
 Description: This plugin offers the possibility to load lists of document references from Mendeley (shared) collections, and display them in WordPress posts or pages.
 */
 
-define( 'PLUGIN_VERSION' , '0.8.7' );
+define( 'PLUGIN_VERSION' , '0.8.8' );
 define( 'PLUGIN_DB_VERSION', 2 );
 
 /* 
@@ -220,8 +220,12 @@ if (!class_exists("MendeleyPlugin")) {
 			}
 			$cacheresult = $this->getOutputFromCache($cacheid);
 			if (!empty($cacheresult)) {
-				return $result.$cacheresult;
+			   if ($this->settings['debug'] === 'true') {
+				$result .= "<p>Mendeley Plugin: using cached output</p>";
+			   }
+			   return $result.$cacheresult;
 			}
+			$cacheresult = "";
 
 			// type can be own, folders, groups, documents
 			$res = $this->getItemsByType($type, $id);
@@ -256,6 +260,7 @@ if (!class_exists("MendeleyPlugin")) {
 					$groupbyval = $doc->$groupby;
 					if (!($groupbyval === $currentgroupbyval)) {
 						$result = $result . '<h2 class="wpmgrouptitle">' . $groupbyval . '</h2>';
+						$cacheresult = $cacheresult . '<h2 class="wpmgrouptitle">' . $groupbyval . '</h2>';
 						$currentgroupbyval = $groupbyval;
 					}
 				}
@@ -264,9 +269,11 @@ if (!class_exists("MendeleyPlugin")) {
 				// standard one ("standard") - the latter allows the optional attribute "csl"
 				if ($style === "shortlist") {
 					$result .= '<li class="wpmlistref">' . $this->formatDocumentShort($doc) .  '</li>';
+					$cacheresult .= '<li class="wpmlistref">' . $this->formatDocumentShort($doc) .  '</li>';
 				} else {
 					// do static formatting or formatting with CSL stylesheet
 					$result = $result . $this->formatDocument($doc,$csl);
+					$cacheresult = $cacheresult . $this->formatDocument($doc,$csl);
 				}
 
 				if ($maxdocs > 0) {
@@ -281,7 +288,7 @@ if (!class_exists("MendeleyPlugin")) {
 			if ($this->settings['debug'] === 'true') {
 				$result .= "<p>Mendeley Plugin: Filtered results count: " . $countfiltered . "</p>";
 			}
-			$this->updateOutputInCache($cacheid, $result);
+			$this->updateOutputInCache($cacheid, $cacheresult);
 			return $result;
 		}		
 
@@ -377,6 +384,7 @@ if (!class_exists("MendeleyPlugin")) {
 			$result = $this->getCollectionFromCache($cacheid);
 			if (!is_null($result)) {
 				$doc_ids = $result->document_ids;
+				// TBD: Debug Log: Using Cached Query Results
 				return $doc_ids;
 			}
 			$url = MENDELEY_OAPI_URL . "library/$type/$id/?page=0&items=10000";
@@ -550,9 +558,11 @@ if (!class_exists("MendeleyPlugin")) {
                                 $docdata->title = $doc->title;
                                 if (isset($doc->published_in)) {
                                         $docdata->container_title = $doc->published_in;
+                                        $docdata->collection_title = $doc->published_in;
                                 }
                                 if (isset($doc->publication_outlet)) {
                                         $docdata->container_title = $doc->publication_outlet;
+                                        $docdata->collection_title = $doc->publication_outlet;
                                 }
                                 if (isset($doc->journal)) {
                                         $docdata->container_title = $doc->journal;
@@ -705,9 +715,9 @@ if (!class_exists("MendeleyPlugin")) {
 				$this->type_map = array(
 						'Book' => 'book',
 						'Book Section' => 'chapter',
-						'Journal Article' => 'article',
-						'Magazine Article' => 'article',
-						'Newspaper Article' => 'article',
+						'Journal Article' => 'article-journal',
+						'Magazine Article' => 'article-magazine',
+						'Newspaper Article' => 'article-newspaper',
 						'Conference Proceedings' => 'paper-conference',
 						'Report' => 'report',
 						'Thesis' => 'thesis',

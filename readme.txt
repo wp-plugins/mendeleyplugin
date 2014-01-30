@@ -236,6 +236,10 @@ The plugin is hosted on Google Code: http://code.google.com/p/wp-mendeley-plugin
 
 == Change log ==
 
+= 0.8.8 (30.01.2014)
+* do not include log output in output caching
+* bug fix: CSL formatting now works again (problem with missing elements in output e.g. journal title)
+
 = 0.8.7 (29.01.2014)
 * refactoring of filtering code to deal with minor problems
 
